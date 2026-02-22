@@ -1,0 +1,34 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.egg
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# DB
+*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic.ini
