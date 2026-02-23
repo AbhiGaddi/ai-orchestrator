@@ -72,6 +72,10 @@ async def execute_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
             task.github_issue_id = ticket_result.output.get("github_issue_id")
             task.github_issue_url = ticket_result.output.get("github_issue_url")
             context.update(ticket_result.output)
+        else:
+            task.status = "FAILED"
+            await db.flush()
+            return TaskResponse.model_validate(task)
 
         # Step 2: Send email (even if ticket failed, we note it gracefully)
         email_context = {**context, "github_issue_url": task.github_issue_url or ""}
