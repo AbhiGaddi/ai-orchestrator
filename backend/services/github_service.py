@@ -14,7 +14,15 @@ GITHUB_API_BASE = "https://api.github.com"
 
 class GitHubService:
     def __init__(self, repo: str = None):
-        self.repo = repo or settings.GITHUB_REPO  # owner/repo
+        repo_str = repo or settings.GITHUB_REPO
+        # Handle full URL if pasted
+        if repo_str.startswith("http"):
+            # owner/repo is usually the last two segments
+            parts = repo_str.rstrip("/").split("/")
+            if len(parts) >= 2:
+                repo_str = f"{parts[-2]}/{parts[-1]}"
+        
+        self.repo = repo_str  # owner/repo
         self.headers = {
             "Authorization": f"Bearer {settings.GITHUB_TOKEN}",
             "Accept": "application/vnd.github+json",
