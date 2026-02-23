@@ -15,16 +15,25 @@ setup_logging()
 logger = get_logger(__name__)
 
 
+from backend.core.scheduler import start_scheduler
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: create all DB tables. Shutdown: dispose engine."""
+    """Startup: create all DB tables, start scheduler. Shutdown: dispose engine."""
     logger.info("🚀 AI Orchestrator starting up…")
     async with engine.begin() as conn:
         # In development, auto-create tables. In production, use Alembic migrations.
         if settings.APP_ENV == "development":
             await conn.run_sync(Base.metadata.create_all)
             logger.info("✅ Database tables ready")
+    
+    # Start the background sync scheduler
+    scheduler = start_scheduler()
+    
     yield
+    
+    # Shutdown
+    scheduler.shutdown()
     await engine.dispose()
     logger.info("🛑 AI Orchestrator shut down")
 

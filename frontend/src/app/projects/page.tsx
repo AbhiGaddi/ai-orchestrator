@@ -38,6 +38,8 @@ export default function ProjectsPage() {
         description: "",
         github_repos: "",
         coding_guidelines: "",
+        sonar_project_key: "",
+        sonar_token: "",
     });
 
     useEffect(() => {
@@ -71,6 +73,8 @@ export default function ProjectsPage() {
                     .map((s) => s.trim())
                     .filter(Boolean),
                 coding_guidelines: projectForm.coding_guidelines,
+                sonar_project_key: projectForm.sonar_project_key,
+                sonar_token: projectForm.sonar_token,
                 services_context: {},
             };
 
@@ -92,7 +96,7 @@ export default function ProjectsPage() {
     };
 
     const resetForm = () => {
-        setProjectForm({ name: "", description: "", github_repos: "", coding_guidelines: "" });
+        setProjectForm({ name: "", description: "", github_repos: "", coding_guidelines: "", sonar_project_key: "", sonar_token: "" });
         setEditingProjectId(null);
     };
 
@@ -102,6 +106,8 @@ export default function ProjectsPage() {
             description: project.description || "",
             github_repos: (project.github_repos || []).join(", "),
             coding_guidelines: project.coding_guidelines || "",
+            sonar_project_key: project.sonar_project_key || "",
+            sonar_token: project.sonar_token || "",
         });
         setEditingProjectId(project.id);
         setIsDialogOpen(true);
@@ -174,6 +180,29 @@ export default function ProjectsPage() {
                                     value={projectForm.coding_guidelines}
                                     onChange={(e) => setProjectForm({ ...projectForm, coding_guidelines: e.target.value })}
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="sonar_key" className="text-slate-300">Sonar Project Key</Label>
+                                    <Input
+                                        id="sonar_key"
+                                        placeholder="project-key"
+                                        className="bg-black/50 border-white/10"
+                                        value={projectForm.sonar_project_key}
+                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_project_key: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="sonar_token" className="text-slate-300">Sonar Token</Label>
+                                    <Input
+                                        id="sonar_token"
+                                        type="password"
+                                        placeholder="squ_..."
+                                        className="bg-black/50 border-white/10"
+                                        value={projectForm.sonar_token}
+                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_token: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>

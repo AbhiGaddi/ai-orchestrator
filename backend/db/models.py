@@ -21,6 +21,12 @@ class Project(Base):
     github_repos = Column(JSON, default=list)        # e.g., ["org/backend", "org/frontend"]
     services_context = Column(JSON, default=dict)    # Details about internal APIs, architecture, etc.
     coding_guidelines = Column(Text, nullable=True)  # Standards for the agent to follow
+    
+    # SonarCloud Integration
+    sonar_project_key = Column(String(200), nullable=True)
+    sonar_token = Column(String(500), nullable=True)
+    sonar_metrics = Column(JSON, default=dict) # e.g. {"bugs": 0, "vulnerabilities": 0, "code_smells": 0}
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

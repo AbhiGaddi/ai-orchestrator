@@ -147,6 +147,29 @@ class GitHubService:
             raise RuntimeError(f"Failed to create PR: {response.status_code} - {response.text}")
         return response.json()
 
+    async def get_pull_request(self, pr_number: int) -> dict:
+        """Fetch Pull Request details."""
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls/{pr_number}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=self.headers)
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to fetch PR #{pr_number}: {response.status_code} - {response.text}")
+        return response.json()
+
+    async def get_file_content(self, file_path: str, ref: str = "main") -> str:
+        """Fetch raw file content from the repository."""
+        import base64
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/contents/{file_path}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, params={"ref": ref}, headers=self.headers)
+        
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to fetch file {file_path}: {response.text}")
+            
+        content_b64 = response.json().get("content", "")
+        return base64.b64decode(content_b64).decode("utf-8")
+
+
     async def get_pull_request_files(self, pr_number: int) -> list:
         """Fetch the list of files modified in a Pull Request, including their patch/diff."""
         url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls/{pr_number}/files"

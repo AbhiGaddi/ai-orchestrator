@@ -80,86 +80,79 @@ class PRAgent(BaseAgent):
         if not pr_id or not branch_name:
             return AgentResult(success=False, error="PR ID and Branch Name are required for review.")
 
-        logger.info(f"[{self.name}] Fetching files for PR #{pr_id}")
-        
         try:
-            files_data = await self.github.get_pull_request_files(int(pr_id))
+            pr_diff = await self._fetch_pr_diffs(int(pr_id))
+            user_comments = await self._fetch_user_comments(int(pr_id))
             
-            diffs = []
-            for file in files_data:
-                diffs.append(f"File: {file.get('filename')}\nChanges (Patch):\n{file.get('patch', 'No patch diff available')}\n")
-                
-            pr_diff = "\n".join(diffs)
+            prompt = f"{SYSTEM_CONSTITUTION}\n\n{USER_PROMPT.format(title=title, description=description, guidelines=guidelines, architecture=architecture, pr_diff=pr_diff, user_comments=user_comments)}"
+
+            logger.info(f"[{self.name}] Analyzing PR code and comments...")
+            raw_response = await self.llm.complete(prompt)
             
+            decision = self._parse_decision(raw_response)
+            if not decision:
+                return AgentResult(success=False, error="Failed to parse Review Agent JSON response")
+
+            status = decision.get("status", "CHANGES_REQUESTED")
+            comment = decision.get("comment", "")
+            resolutions = decision.get("resolutions", {})
+
+            # Apply actions (post comment and push fixes)
+            await self._apply_resolutions(int(pr_id), branch_name, status, comment, resolutions)
+
+            return AgentResult(
+                success=True,
+                output={
+                    "pr_review_status": status,
+                    "pr_review_comment": comment,
+                    "resolutions_applied": len(resolutions)
+                },
+            )
+
         except Exception as e:
-            logger.error(f"[{self.name}] Failed fetching PR files: {e}")
+            logger.error(f"[{self.name}] Agent execution failed: {e}")
             return AgentResult(success=False, error=str(e))
 
-        user_comments = "No external developer comments."
+    async def _fetch_pr_diffs(self, pr_id: int) -> str:
+        files_data = await self.github.get_pull_request_files(pr_id)
+        diffs = [f"File: {f.get('filename')}\nChanges (Patch):\n{f.get('patch', 'No patch diff available')}\n" for f in files_data]
+        return "\n".join(diffs)
+
+    async def _fetch_user_comments(self, pr_id: int) -> str:
         try:
-            comments_data = await self.github.get_pr_comments(int(pr_id))
-            if comments_data:
-                # Filter out our own bot comments ("ai-orchestrator[bot]" or just the automated response texts)
-                # to prevent feedback loops where the AI reviews its own "LGTM" comment.
-                filtered = [
-                    c for c in comments_data 
-                    if "[bot]" not in c.get('user',{}).get('login','').lower() 
-                    and "🤖 AI Code Review:" not in c.get('body','')
-                ]
-                
-                if filtered:
-                    comment_texts = [f"- {c.get('user',{}).get('login','User')}: {c.get('body')}" for c in filtered]
-                    user_comments = "\n".join(comment_texts)
-        except Exception as e:
-            logger.warning(f"[{self.name}] Failed fetching PR comments (continuing anyway): {e}")
+            comments_data = await self.github.get_pr_comments(pr_id)
+            filtered = [
+                c for c in comments_data 
+                if "[bot]" not in c.get('user',{}).get('login','').lower() 
+                and "🤖 AI Code Review:" not in c.get('body','')
+            ]
+            if not filtered:
+                return "No external developer comments."
+            return "\n".join([f"- {c.get('user',{}).get('login','User')}: {c.get('body')}" for c in filtered])
+        except Exception:
+            return "No external developer comments."
 
-        prompt = f"{SYSTEM_CONSTITUTION}\n\n{USER_PROMPT.format(title=title, description=description, guidelines=guidelines, architecture=architecture, pr_diff=pr_diff, user_comments=user_comments)}"
-
-        logger.info(f"[{self.name}] Analyzing PR code and {len(comments_data) if 'comments_data' in locals() else 0} comments...")
-        raw_response = await self.llm.complete(prompt)
-        
-        clean_response = raw_response
+    def _parse_decision(self, raw_response: str) -> dict:
         match = re.search(r'\{.*\}', raw_response, re.DOTALL)
         if match:
-            clean_response = match.group(0)
-            
-        try:
-            decision = json.loads(clean_response)
-        except Exception as e:
-            logger.error(f"[{self.name}] Failed to parse review JSON: {e}")
-            return AgentResult(success=False, error="Failed to parse Review Agent JSON response")
+            try:
+                return json.loads(match.group(0))
+            except Exception:
+                pass
+        return {}
 
-        status = decision.get("status", "CHANGES_REQUESTED")
-        comment = decision.get("comment", "Automated code review completed.")
-        resolutions = decision.get("resolutions", {})
-
-        try:
-            # 1. Post the general review comment
-            status_emoji = "✅" if status == "APPROVED" else "⚠️"
-            full_comment = f"## 🤖 AI Code Review: {status_emoji} {status}\n\n{comment}"
-            await self.github.create_pr_review_comment(int(pr_id), full_comment)
-            
-            # 2. If changes requested, commit fixes!
-            if status == "CHANGES_REQUESTED" and resolutions:
-                logger.info(f"[{self.name}] Committing resolutions to branch {branch_name}")
-                for file_path, content in resolutions.items():
-                    await self.github.create_or_update_file(
-                        branch=branch_name,
-                        file_path=file_path,
-                        content=str(content),
-                        commit_message=f"AI Code Review Resolution: Fixed {file_path}"
-                    )
-                full_comment += "\n\n**Note**: I have automatically pushed resolution commits to address these issues."
-                
-        except Exception as e:
-            logger.error(f"[{self.name}] GitHub review actions failed: {e}")
-            return AgentResult(success=False, error=str(e))
-
-        return AgentResult(
-            success=True,
-            output={
-                "pr_review_status": status,
-                "pr_review_comment": comment,
-                "resolutions_applied": len(resolutions)
-            },
-        )
+    async def _apply_resolutions(self, pr_id: int, branch_name: str, status: str, comment: str, resolutions: dict):
+        status_emoji = "✅" if status == "APPROVED" else "⚠️"
+        full_comment = f"## 🤖 AI Code Review: {status_emoji} {status}\n\n{comment}"
+        
+        if status == "CHANGES_REQUESTED" and resolutions:
+            for file_path, content in resolutions.items():
+                await self.github.create_or_update_file(
+                    branch=branch_name,
+                    file_path=file_path,
+                    content=str(content),
+                    commit_message=f"AI Code Review Resolution: Fixed {file_path}"
+                )
+            full_comment += "\n\n**Note**: I have automatically pushed resolution commits to address these issues."
+        
+        await self.github.create_pr_review_comment(pr_id, full_comment)

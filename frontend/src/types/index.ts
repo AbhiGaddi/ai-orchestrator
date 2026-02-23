@@ -54,6 +54,9 @@ export interface Project {
     github_repos: string[];
     services_context: Record<string, any>;
     coding_guidelines?: string;
+    sonar_project_key?: string;
+    sonar_token?: string;
+    sonar_metrics?: Record<string, any>;
     created_at: string;
     updated_at: string;
 }

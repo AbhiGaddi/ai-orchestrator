@@ -58,3 +58,35 @@ async def delete_project(project_id: UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(project)
     await db.commit()
     return None
+from backend.services.sonar_service import SonarService
+
+@router.get("/{project_id}/sonar/issues")
+async def get_sonar_issues(project_id: UUID, db: AsyncSession = Depends(get_db)):
+    project = await db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND_MSG)
+    
+    if not project.sonar_project_key or not project.sonar_token:
+        return []
+        
+    sonar = SonarService(project.sonar_project_key, project.sonar_token)
+    issues = await sonar.get_issues()
+    return issues
+
+@router.post("/{project_id}/sonar/sync")
+async def sync_sonar_metrics(project_id: UUID, db: AsyncSession = Depends(get_db)):
+    project = await db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=PROJECT_NOT_FOUND_MSG)
+    
+    if not project.sonar_project_key or not project.sonar_token:
+        raise HTTPException(status_code=400, detail="Sonar not configured for this project")
+        
+    sonar = SonarService(project.sonar_project_key, project.sonar_token)
+    metrics = await sonar.get_metrics()
+    
+    if metrics:
+        project.sonar_metrics = metrics
+        await db.commit()
+        
+    return metrics

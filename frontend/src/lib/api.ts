@@ -37,6 +37,37 @@ export function updateProject(id: string, data: Partial<Project>) {
     });
 }
 
+export function listSonarIssues(projectId: string) {
+    return fetchApi<any[]>(`/projects/${projectId}/sonar/issues`);
+}
+
+export function syncSonarMetrics(projectId: string) {
+    return fetchApi<any>(`/projects/${projectId}/sonar/sync`, {
+        method: 'POST'
+    });
+}
+
+export function fixSonarIssue(projectId: string, issue: any) {
+    return fetchApi<any>(`/api/execution/sonar-fix?project_id=${projectId}`, {
+        method: 'POST',
+        body: JSON.stringify(issue)
+    });
+}
+
+export function sweepSonarIssues(projectId: string, issues: any[]) {
+    return fetchApi<any>(`/api/execution/sonar-sweep?project_id=${projectId}`, {
+        method: 'POST',
+        body: JSON.stringify(issues)
+    });
+}
+
+export function triggerManualPRReview(projectId: string, prNumber: number, repo?: string) {
+    const qs = repo ? `&repo=${repo}` : '';
+    return fetchApi<any>(`/api/execution/pr-review?project_id=${projectId}&pr_number=${prNumber}${qs}`, {
+        method: 'POST'
+    });
+}
+
 // -- Discussion Phase 1 --
 export const extractTasks = (transcript: string, project_id?: string, github_repo?: string): Promise<ExtractResponse> =>
     fetchApi('/api/discussion/extract', {
