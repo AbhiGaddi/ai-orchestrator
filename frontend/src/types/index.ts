@@ -12,23 +12,48 @@ export type AgentRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
 export interface Task {
     id: string;
+    project_id?: string;
     title: string;
-    description: string | null;
-    acceptance_criteria: string | null;
-    deadline: string | null;
-    priority: Priority;
+    description?: string;
+    acceptance_criteria?: string;
+    deadline?: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
     status: TaskStatus;
     approved: boolean;
-    github_issue_id: string | null;
-    github_issue_url: string | null;
+    github_issue_id?: string;
+    github_issue_url?: string;
     email_sent: boolean;
-    // Phase 2+
-    github_pr_id: string | null;
-    github_pr_url: string | null;
-    branch_name: string | null;
-    image_tag: string | null;
-    deployed_at: string | null;
-    deploy_environment: string | null;
+    github_repo?: string;
+    github_pr_id?: string;
+    github_pr_url?: string;
+    branch_name?: string;
+    pr_reviewed: boolean;
+
+    tests_passed?: boolean | null;
+    test_report_url?: string | null;
+
+    image_tag?: string | null;
+    image_built_at?: string | null;
+    build_status?: string | null;
+    build_logs_url?: string | null;
+    docker_image_url?: string | null;
+
+    deployed_at?: string | null;
+    deploy_environment?: string | null;
+    deployment_status?: string | null;
+    deployment_url?: string | null;
+
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Project {
+    id: string;
+    name: string;
+    description?: string;
+    github_repos: string[];
+    services_context: Record<string, any>;
+    coding_guidelines?: string;
     created_at: string;
     updated_at: string;
 }

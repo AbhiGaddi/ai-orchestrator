@@ -10,6 +10,8 @@ class TaskCreate(BaseModel):
     acceptance_criteria: Optional[str] = None
     deadline: Optional[str] = None
     priority: Optional[str] = "MEDIUM"
+    project_id: Optional[UUID] = None
+    github_repo: Optional[str] = None
 
 
 class TaskUpdate(BaseModel):
@@ -18,10 +20,13 @@ class TaskUpdate(BaseModel):
     acceptance_criteria: Optional[str] = None
     deadline: Optional[str] = None
     priority: Optional[str] = None
+    project_id: Optional[UUID] = None
+    github_repo: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
     id: UUID
+    project_id: Optional[UUID] = None
     title: str
     description: Optional[str]
     acceptance_criteria: Optional[str]
@@ -32,13 +37,29 @@ class TaskResponse(BaseModel):
     github_issue_id: Optional[str]
     github_issue_url: Optional[str]
     email_sent: bool
+    github_repo: Optional[str] = None
     # Phase 2+
     github_pr_id: Optional[str]
     github_pr_url: Optional[str]
     branch_name: Optional[str]
-    image_tag: Optional[str]
-    deployed_at: Optional[datetime]
-    deploy_environment: Optional[str]
+    pr_reviewed: bool
+    
+    # Phase 2.75+
+    tests_passed: Optional[bool] = None
+    test_report_url: Optional[str] = None
+    
+    # Phase 3+
+    image_tag: Optional[str] = None
+    image_built_at: Optional[datetime] = None
+    build_status: Optional[str] = None
+    build_logs_url: Optional[str] = None
+    docker_image_url: Optional[str] = None
+    
+    # Phase 4+
+    deployed_at: Optional[datetime] = None
+    deploy_environment: Optional[str] = None
+    deployment_status: Optional[str] = None
+    deployment_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -48,6 +69,8 @@ class TaskResponse(BaseModel):
 
 class ExtractRequest(BaseModel):
     transcript: str = Field(..., min_length=10, description="Raw discussion transcript text")
+    project_id: Optional[UUID] = None
+    github_repo: Optional[str] = None
 
 
 class ExtractResponse(BaseModel):

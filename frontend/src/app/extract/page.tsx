@@ -1,10 +1,12 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, Sparkles, ArrowRight, X } from 'lucide-react';
-import { extractTasks } from '@/lib/api';
+import { Upload, FileText, Sparkles, ArrowRight, X, Github } from 'lucide-react';
+import { extractTasks, listProjects } from '@/lib/api';
 import { toast } from '@/components/ui/Toast';
 import ToastContainer from '@/components/ui/Toast';
+import { Project } from '@/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const SAMPLE = `Product meeting — Feb 2026
 
@@ -17,16 +19,32 @@ Alice: That's critical. Should be done within this week.`;
 
 export default function ExtractPage() {
     const [text, setText] = useState('');
+    const [projectId, setProjectId] = useState<string | undefined>("none");
+    const [githubRepo, setGithubRepo] = useState('');
+    const [projects, setProjects] = useState<Project[]>([]);
     const [dragOver, setDragOver] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const fileRef = useRef<HTMLInputElement>(null);
 
+    useEffect(() => {
+        listProjects().then(data => setProjects(data)).catch(console.error);
+
+        // Check for project_id in URL
+        const searchParams = new URLSearchParams(window.location.search);
+        const pId = searchParams.get('project_id');
+        if (pId) setProjectId(pId);
+    }, []);
+
     async function handleExtract() {
         if (!text.trim()) { toast('error', 'Please paste or upload a transcript first'); return; }
         setLoading(true);
         try {
-            const result = await extractTasks(text.trim());
+            const result = await extractTasks(
+                text.trim(),
+                projectId === "none" ? undefined : projectId,
+                githubRepo.trim() || undefined
+            );
             toast('success', `Extracted ${result.count} task${result.count !== 1 ? 's' : ''} successfully!`);
             setTimeout(() => router.push('/tasks'), 800);
         } catch (err: unknown) {
@@ -81,12 +99,52 @@ export default function ExtractPage() {
                             <div className="upload-sub">Supports .txt and .md files · Or paste text below</div>
                         </div>
 
+                        {/* Project Select */}
+                        <div className="form-group mb-2">
+                            <label className="form-label mb-1" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Upload size={14} style={{ opacity: 0.6 }} /> Target Project
+                            </label>
+                            <Select value={projectId} onValueChange={setProjectId}>
+                                <SelectTrigger className="w-full bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-primary)] h-12 hover:border-[var(--accent)] transition-all">
+                                    <SelectValue placeholder="Select a project context" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-primary)]">
+                                    <SelectItem value="none" className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)]">
+                                        No Project (Global Application)
+                                    </SelectItem>
+                                    {projects.map(p => (
+                                        <SelectItem key={p.id} value={p.id} className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)]">
+                                            {p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                Selecting a project allows the AI to use specific coding guidelines and architecture context.
+                            </p>
+                        </div>
+
+                        {/* GitHub Repo override */}
+                        <div className="form-group mb-2">
+                            <label className="form-label mb-1" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Github size={14} style={{ opacity: 0.6 }} /> Target Repository (Optional override)
+                            </label>
+                            <input
+                                className="form-input h-12"
+                                placeholder="e.g. owner/repo-name"
+                                value={githubRepo}
+                                onChange={e => setGithubRepo(e.target.value)}
+                            />
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                If left blank, the orchestrator will use your default workspace repository.
+                            </p>
+                        </div>
+
                         {/* Textarea */}
                         <div className="form-group">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <label className="form-label" style={{ margin: 0 }}>
-                                    <FileText size={12} style={{ display: 'inline', marginRight: 5 }} />
-                                    Discussion Transcript
+                                <label className="form-label mb-1" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                                    <FileText size={14} style={{ opacity: 0.6 }} /> Discussion Transcript
                                 </label>
                                 {text && (
                                     <button className="btn btn-ghost btn-sm" onClick={() => setText('')}>

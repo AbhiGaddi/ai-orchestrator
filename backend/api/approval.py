@@ -9,7 +9,8 @@ Approval API
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
+from typing import Optional
 
 from backend.db.database import get_db
 from backend.db.models import Task
@@ -29,9 +30,13 @@ async def _get_task_or_404(task_id: UUID, db: AsyncSession) -> Task:
 
 
 @router.get("", response_model=list[TaskResponse])
-async def list_tasks(db: AsyncSession = Depends(get_db)):
-    """Return all tasks ordered by created_at desc."""
-    result = await db.execute(select(Task).order_by(Task.created_at.desc()))
+async def list_tasks(project_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)):
+    """Return all tasks ordered by created_at desc. Optionally filter by project."""
+    query = select(Task).order_by(Task.created_at.desc())
+    if project_id:
+        query = query.where(Task.project_id == project_id)
+    
+    result = await db.execute(query)
     tasks = result.scalars().all()
     return [TaskResponse.model_validate(t) for t in tasks]
 

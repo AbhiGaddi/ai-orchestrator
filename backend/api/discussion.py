@@ -30,6 +30,7 @@ async def extract_tasks(request: ExtractRequest, db: AsyncSession = Depends(get_
     placeholder = Task(
         title="[Extraction Run]",
         status="PENDING",
+        project_id=request.project_id,
     )
     db.add(placeholder)
     await db.flush()
@@ -38,7 +39,7 @@ async def extract_tasks(request: ExtractRequest, db: AsyncSession = Depends(get_
         result = await orchestrator.run_agent(
             agent_cls=DiscussionAgent,
             task=placeholder,
-            context={"transcript": request.transcript},
+            context={"transcript": request.transcript, "project_id": str(request.project_id) if request.project_id else None},
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"DiscussionAgent failed: {str(e)}")
@@ -62,6 +63,8 @@ async def extract_tasks(request: ExtractRequest, db: AsyncSession = Depends(get_
             priority=task_data.get("priority", "MEDIUM"),
             status="PENDING",
             approved=False,
+            project_id=request.project_id,
+            github_repo=request.github_repo,
         )
         db.add(task)
         saved_tasks.append(task)

@@ -1,28 +1,62 @@
-"""
-EmailAgent — Phase 1
-
-Responsibility:
-  Sends an email summary after a GitHub issue is created.
-
-Input context keys:
-  - title: str
-  - description: str
-  - deadline: str | None
-  - priority: str
-  - github_issue_url: str
-"""
+import json
+import re
 from backend.agents.base_agent import BaseAgent, AgentResult
 from backend.services.mailer_service import MailerService
+from backend.services.gemini_service import GeminiService
 from backend.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+# --- EMAIL AGENT CONSTITUTION ---
+SYSTEM_CONSTITUTION = """
+<IDENTITY>
+You are an Internal Communications and Privacy Officer. Your job is to summarize technical tasks for email notification while protecting PRIVACY.
+</IDENTITY>
+
+<PRIVACY_PROTOCOL>
+Before generating the email body, you MUST:
+1. PII CHECK: Ensure no customer names, emails, or phone numbers are in the body unless essential.
+2. SECRET CHECK: Ensure NO API keys, internal IP addresses, or credentials are sent via email.
+3. SANITIZATION: Replace sensitive details with generic placeholders if found.
+
+Emails are often stored in unencrypted archives; security is paramount.
+</PRIVACY_PROTOCOL>
+
+<FORMATTING_GUIDELINES>
+- Use clean HTML with inline styling.
+- Keep the summary professional and concise.
+</FORMATTING_GUIDELINES>
+
+<OUTPUT_SCHEMA>
+{{
+  "privacy_scan": {{
+    "sanitization_performed": bool,
+    "confidence_rating": float (0-1)
+  }},
+  "email_subject": str,
+  "email_html_body": str
+}}
+</OUTPUT_SCHEMA>
+"""
+
+USER_PROMPT = """
+<TASK_DATA>
+Title: {title}
+Description: {description}
+Deadline: {deadline}
+Priority: {priority}
+GitHub Link: {github_url}
+</TASK_DATA>
+
+Generate the sanitized email content in JSON format according to the <OUTPUT_SCHEMA>.
+"""
 
 class EmailAgent(BaseAgent):
     name = "EmailAgent"
 
     def __init__(self):
         self.mailer = MailerService()
+        self.llm = GeminiService()
 
     async def run(self, context: dict) -> AgentResult:
         title = context.get("title", "Task")
@@ -31,9 +65,37 @@ class EmailAgent(BaseAgent):
         priority = context.get("priority", "MEDIUM")
         github_url = context.get("github_issue_url", "")
 
-        subject = f"[AI Task Created] {title}"
-        body = self._build_email_body(title, description, deadline, priority, github_url)
+        # 1. Privacy Scan & Content Generation (Reasoning Step)
+        prompt = f"{SYSTEM_CONSTITUTION}\n\n{USER_PROMPT.format(
+            title=title,
+            description=description,
+            deadline=deadline,
+            priority=priority,
+            github_url=github_url
+        )}"
 
+        logger.info(f"[{self.name}] Performing privacy scan and generating email.")
+        raw_response = await self.llm.complete(prompt)
+
+        # Clean markdown formatting if present
+        clean_response = raw_response
+        match = re.search(r'\{.*\}', raw_response, re.DOTALL)
+        if match:
+            clean_response = match.group(0)
+
+        try:
+            data = json.loads(clean_response)
+            privacy_info = data.get("privacy_scan", {})
+            subject = data.get("email_subject", f"[AI Task] {title}")
+            body = data.get("email_html_body", "")
+            
+            if privacy_info.get("sanitization_performed"):
+                logger.info(f"[{self.name}] Privacy sanitization applied (Confidence: {privacy_info.get('confidence_rating')})")
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to parse email output: {e}")
+            return AgentResult(success=False, error="Failed to verify privacy of email content")
+
+        # 2. Action (Send Email)
         logger.info(f"[{self.name}] Sending email: {subject!r}")
         try:
             await self.mailer.send(subject=subject, body=body)
@@ -43,36 +105,9 @@ class EmailAgent(BaseAgent):
         logger.info(f"[{self.name}] Email sent successfully")
         return AgentResult(
             success=True,
-            output={"email_sent": True, "subject": subject},
+            output={
+                "email_sent": True, 
+                "subject": subject,
+                "privacy_scan_results": privacy_info
+            },
         )
-
-    def _build_email_body(self, title, description, deadline, priority, github_url) -> str:
-        return f"""
-<html>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #1a73e8;">🤖 AI Orchestrator — New Task Created</h2>
-  <hr/>
-
-  <h3>{title}</h3>
-
-  <table style="width:100%; border-collapse: collapse;">
-    <tr>
-      <td style="padding: 8px; background:#f1f3f4; font-weight:bold; width:30%;">Priority</td>
-      <td style="padding: 8px;">{priority}</td>
-    </tr>
-    <tr>
-      <td style="padding: 8px; background:#f1f3f4; font-weight:bold;">Deadline</td>
-      <td style="padding: 8px;">{deadline or "Not specified"}</td>
-    </tr>
-  </table>
-
-  <h4>Description</h4>
-  <p>{description or "No description provided."}</p>
-
-  {"<h4>GitHub Issue</h4><p><a href='" + github_url + "'>" + github_url + "</a></p>" if github_url else ""}
-
-  <hr/>
-  <small style="color:#888;">This email was automatically generated by AI Orchestrator.</small>
-</body>
-</html>
-"""

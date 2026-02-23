@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     # Database (PostgreSQL)
     DATABASE_URL: str  # e.g. postgresql+asyncpg://user:pass@localhost:5432/ai_orchestrator
 
-    # Anthropic / Claude
-    CLAUDE_API_KEY: str
-    CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"
+    # Gemini / Google
+    GEMINI_API_KEY: str
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # GitHub
     GITHUB_TOKEN: str
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 @lru_cache()

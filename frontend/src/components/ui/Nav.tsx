@@ -1,16 +1,35 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bot, LayoutDashboard, CheckSquare, Upload } from 'lucide-react';
+import { Bot, LayoutDashboard, CheckSquare, Upload, Moon, Sun } from 'lucide-react';
 
 const links = [
-    { href: '/extract', label: 'Extract', icon: Upload },
-    { href: '/tasks', label: 'Tasks', icon: CheckSquare },
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/projects', label: 'Projects', icon: LayoutDashboard }, // Assuming LayoutDashboard for Projects
+    { href: '/extract', label: 'Extract Tasks', icon: Upload },
+    { href: '/tasks', label: 'Task Review', icon: CheckSquare },
+    { href: '/dashboard', label: 'Agent Dashboard', icon: LayoutDashboard },
 ];
 
 export default function Nav() {
     const pathname = usePathname();
+    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+    useEffect(() => {
+        const saved = localStorage.getItem('theme-mode') as 'light' | 'dark';
+        if (saved) {
+            setTheme(saved);
+            document.documentElement.setAttribute('data-theme', saved);
+        }
+    }, []);
+
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme-mode', next);
+    };
+
     return (
         <nav className="nav">
             <div className="nav-inner">
@@ -33,9 +52,19 @@ export default function Nav() {
                     ))}
                 </div>
                 <div className="nav-spacer" />
-                <div className="nav-badge">
+
+                {/* Theme Toggle Button */}
+                <button
+                    onClick={toggleTheme}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}
+                    title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                >
+                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                </button>
+
+                <div className="nav-badge" style={{ marginLeft: 16 }}>
                     <span className="nav-badge-dot" />
-                    Phase 1 Live
+                    Phase 2 Live
                 </div>
             </div>
         </nav>

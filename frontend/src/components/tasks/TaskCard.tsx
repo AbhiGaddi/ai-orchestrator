@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { Pencil, Check, X, Play, Github, Mail, Calendar, AlertCircle } from 'lucide-react';
 import { Task } from '@/types';
-import { approveTask, rejectTask, executeTask } from '@/lib/api';
+import { approveTask, rejectTask, executeTask, generateCodeTask } from '@/lib/api';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badges';
 import { toast } from '@/components/ui/Toast';
 import EditTaskModal from './EditTaskModal';
+import Link from 'next/link';
+
 
 interface TaskCardProps {
     task: Task;
@@ -30,6 +32,7 @@ export default function TaskCard({ task, onChange }: TaskCardProps) {
     };
 
     const canExecute = task.approved && !['IN_PROGRESS', 'COMPLETED', 'FAILED'].includes(task.status);
+    const canGenerateCode = task.status === 'COMPLETED' && !!task.github_issue_id && !task.github_pr_id;
     const isCompleted = task.status === 'COMPLETED';
     const isRejected = task.status === 'REJECTED';
 
@@ -38,8 +41,11 @@ export default function TaskCard({ task, onChange }: TaskCardProps) {
             <div className="task-card" style={{ borderLeft: isCompleted ? '3px solid var(--green)' : isRejected ? '3px solid var(--red)' : '3px solid transparent' }}>
                 <div className="task-card-header">
                     <div style={{ flex: 1 }}>
-                        <div className="task-card-title" style={{ marginBottom: 8 }}>{task.title}</div>
+                        <Link href={`/tasks/${task.id}`} className="task-card-title" style={{ marginBottom: 8, display: 'inline-block', textDecoration: 'none', color: 'inherit' }}>
+                            {task.title}
+                        </Link>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
                             <StatusBadge status={task.status} />
                             <PriorityBadge priority={task.priority} />
                             {task.deadline && (
@@ -67,13 +73,20 @@ export default function TaskCard({ task, onChange }: TaskCardProps) {
                 </div>
 
                 {/* GitHub + Email status */}
-                {(task.github_issue_url || task.email_sent) && (
+                {(task.github_issue_url || task.email_sent || task.github_pr_url) && (
                     <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                         {task.github_issue_url && (
                             <a href={task.github_issue_url} target="_blank" rel="noreferrer"
                                 className="badge badge-completed"
-                                style={{ gap: 6 }}>
+                                style={{ gap: 6, textDecoration: 'none' }}>
                                 <Github size={11} /> Issue #{task.github_issue_id}
+                            </a>
+                        )}
+                        {task.github_pr_url && (
+                            <a href={task.github_pr_url} target="_blank" rel="noreferrer"
+                                className="badge badge-primary"
+                                style={{ gap: 6, textDecoration: 'none', background: 'var(--blue-dim)', color: 'var(--blue)' }}>
+                                <Github size={11} /> PR #{task.github_pr_id}
                             </a>
                         )}
                         {task.email_sent && (
@@ -122,17 +135,34 @@ export default function TaskCard({ task, onChange }: TaskCardProps) {
                                 </button>
                             )}
 
-                            {/* Execute */}
+                            {/* Execute Setup */}
                             {canExecute && (
                                 <button
                                     className="btn btn-primary btn-sm"
                                     onClick={() => do_('execute', () => executeTask(task.id))}
                                     disabled={!!loading}
+                                    title="Run TicketAgent & EmailAgent"
                                 >
                                     {loading === 'execute' ? <span className="spinner" /> : <Play size={13} />}
-                                    Execute
+                                    Execute Setup
                                 </button>
                             )}
+
+                        </div>
+                    )}
+
+                    {/* Generate Code (Phase 2) - Shows even when COMPLETED */}
+                    {canGenerateCode && (
+                        <div className="task-card-actions">
+                            <button
+                                className="btn btn-sm"
+                                style={{ background: 'linear-gradient(135deg, var(--accent), var(--blue))', color: '#fff', border: 'none' }}
+                                onClick={() => do_('generate', () => generateCodeTask(task.id))}
+                                disabled={!!loading}
+                            >
+                                {loading === 'generate' ? <span className="spinner" /> : <Play size={13} />}
+                                Generate Code
+                            </button>
                         </div>
                     )}
 

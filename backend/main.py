@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import get_settings
 from backend.core.logging import setup_logging, get_logger
 from backend.db.database import engine, Base
-from backend.api import discussion, approval, execution, agent_runs
+from backend.api import discussion, approval, execution, agent_runs, projects
 
 settings = get_settings()
 setup_logging()
@@ -46,6 +46,7 @@ app.add_middleware(
 )
 
 # Register API routers
+app.include_router(projects.router)
 app.include_router(discussion.router)
 app.include_router(approval.router)
 app.include_router(execution.router)

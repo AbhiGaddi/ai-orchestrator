@@ -8,7 +8,7 @@ import TaskCard from '@/components/tasks/TaskCard';
 import ToastContainer, { toast } from '@/components/ui/Toast';
 import Link from 'next/link';
 
-type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
+type FilterStatus = 'ALL' | 'PENDING' | 'READY_TICKET' | 'READY_CODE' | 'READY_REVIEW' | 'REVIEW_DONE' | 'FAILED';
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,21 +36,35 @@ export default function TasksPage() {
         setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
     }
 
-    const filtered = filter === 'ALL' ? tasks : tasks.filter(t => t.status === filter);
-
     const counts = {
         total: tasks.length,
         pending: tasks.filter(t => t.status === 'PENDING').length,
-        approved: tasks.filter(t => t.status === 'APPROVED').length,
-        completed: tasks.filter(t => t.status === 'COMPLETED').length,
+        readyTicket: tasks.filter(t => t.status === 'APPROVED' && !t.github_issue_id).length,
+        readyCode: tasks.filter(t => t.status === 'COMPLETED' && !!t.github_issue_id && !t.github_pr_id).length,
+        readyReview: tasks.filter(t => t.status === 'COMPLETED' && !!t.github_pr_id && !t.pr_reviewed).length,
+        reviewDone: tasks.filter(t => t.status === 'COMPLETED' && !!t.pr_reviewed).length,
         failed: tasks.filter(t => t.status === 'FAILED').length,
     };
 
+    const filtered = tasks.filter(t => {
+        if (filter === 'ALL') return true;
+        if (filter === 'PENDING') return t.status === 'PENDING';
+        if (filter === 'READY_TICKET') return t.status === 'APPROVED' && !t.github_issue_id;
+        if (filter === 'READY_CODE') return t.status === 'COMPLETED' && !!t.github_issue_id && !t.github_pr_id;
+        if (filter === 'READY_REVIEW') return t.status === 'COMPLETED' && !!t.github_pr_id && !t.pr_reviewed;
+        if (filter === 'REVIEW_DONE') return t.status === 'COMPLETED' && !!t.pr_reviewed;
+        if (filter === 'FAILED') return t.status === 'FAILED';
+        return false;
+    });
+
     const filterButtons: { label: string; value: FilterStatus; count: number; color: string }[] = [
         { label: 'All', value: 'ALL', count: counts.total, color: 'var(--accent)' },
-        { label: 'Pending', value: 'PENDING', count: counts.pending, color: 'var(--yellow)' },
-        { label: 'Approved', value: 'APPROVED', count: counts.approved, color: 'var(--blue)' },
-        { label: 'Completed', value: 'COMPLETED', count: counts.completed, color: 'var(--green)' },
+        { label: 'Pending Review', value: 'PENDING', count: counts.pending, color: 'var(--yellow)' },
+        { label: 'Wait Setup', value: 'READY_TICKET', count: counts.readyTicket, color: 'var(--blue)' },
+        { label: 'Ready for Code', value: 'READY_CODE', count: counts.readyCode, color: 'var(--purple)' },
+        { label: 'To Review', value: 'READY_REVIEW', count: counts.readyReview, color: 'var(--orange)' },
+        { label: 'Reviewed', value: 'REVIEW_DONE', count: counts.reviewDone, color: 'var(--green)' },
+        { label: 'Failed', value: 'FAILED', count: counts.failed, color: 'var(--red)' },
     ];
 
     return (
@@ -83,14 +97,25 @@ export default function TasksPage() {
                 {/* Stats */}
                 <div className="stats-grid" style={{ marginBottom: 28 }}>
                     {[
-                        { label: 'Total', value: counts.total, color: 'var(--accent-light)' },
-                        { label: 'Pending', value: counts.pending, color: 'var(--yellow)' },
-                        { label: 'Approved', value: counts.approved, color: 'var(--blue)' },
-                        { label: 'Completed', value: counts.completed, color: 'var(--green)' },
-                        { label: 'Failed', value: counts.failed, color: 'var(--red)' },
+                        { label: 'Total', value: 'ALL', count: counts.total, color: 'var(--accent-light)' },
+                        { label: 'Pending Review', value: 'PENDING', count: counts.pending, color: 'var(--yellow)' },
+                        { label: 'Wait Setup', value: 'READY_TICKET', count: counts.readyTicket, color: 'var(--blue)' },
+                        { label: 'Ready to Code', value: 'READY_CODE', count: counts.readyCode, color: 'var(--purple)' },
+                        { label: 'To Review', value: 'READY_REVIEW', count: counts.readyReview, color: 'var(--orange)' },
+                        { label: 'Reviewed', value: 'REVIEW_DONE', count: counts.reviewDone, color: 'var(--green)' },
+                        { label: 'Failed', value: 'FAILED', count: counts.failed, color: 'var(--red)' },
                     ].map(s => (
-                        <div key={s.label} className="stat-card">
-                            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                        <div
+                            key={s.label}
+                            className="stat-card"
+                            style={{
+                                cursor: 'pointer',
+                                border: filter === s.value ? `1px solid ${s.color}` : '1px solid transparent',
+                                opacity: filter === s.value ? 1 : 0.85
+                            }}
+                            onClick={() => setFilter(s.value as FilterStatus)}
+                        >
+                            <div className="stat-value" style={{ color: s.color }}>{s.count}</div>
                             <div className="stat-label">{s.label}</div>
                         </div>
                     ))}

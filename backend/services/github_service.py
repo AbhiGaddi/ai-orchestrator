@@ -13,8 +13,8 @@ GITHUB_API_BASE = "https://api.github.com"
 
 
 class GitHubService:
-    def __init__(self):
-        self.repo = settings.GITHUB_REPO  # owner/repo
+    def __init__(self, repo: str = None):
+        self.repo = repo or settings.GITHUB_REPO  # owner/repo
         self.headers = {
             "Authorization": f"Bearer {settings.GITHUB_TOKEN}",
             "Accept": "application/vnd.github+json",
@@ -46,10 +46,112 @@ class GitHubService:
         return response.json()
 
     # -------------------------------------------------------
-    # Phase 2 stubs — will be implemented in CodeAgent
+    # Phase 2 — CodeAgent & PR Operations
     # -------------------------------------------------------
+    async def get_ref(self, ref: str = "heads/main") -> str:
+        """Get the SHA of a specific reference (e.g., branch)."""
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/ref/{ref}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=self.headers)
+        
+        if response.status_code != 200:
+            raise RuntimeError(f"GitHub API error {response.status_code}: {response.text}")
+        return response.json()["object"]["sha"]
+
     async def create_branch(self, branch_name: str, from_ref: str = "main") -> dict:
-        raise NotImplementedError("Phase 2 — create_branch not yet implemented")
+        """Create a new branch from a base branch."""
+        # 1. Get the base branch SHA
+        base_sha = await self.get_ref(f"heads/{from_ref}")
+        
+        # 2. Create the new branch ref
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/refs"
+        payload = {
+            "ref": f"refs/heads/{branch_name}",
+            "sha": base_sha
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=payload, headers=self.headers)
+            
+        if response.status_code != 201:
+            raise RuntimeError(f"Failed to create branch: {response.status_code} - {response.text}")
+        return response.json()
+        
+    async def create_or_update_file(self, branch: str, file_path: str, content: str, commit_message: str) -> dict:
+        """Create or update a file in the repository."""
+        import base64
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/contents/{file_path}"
+        
+        payload = {
+            "message": commit_message,
+            "content": base64.b64encode(content.encode("utf-8")).decode("utf-8"),
+            "branch": branch
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            # Check if file exists to get its SHA (required for updates)
+            get_resp = await client.get(url, params={"ref": branch}, headers=self.headers)
+            if get_resp.status_code == 200:
+                payload["sha"] = get_resp.json()["sha"]
+                
+            response = await client.put(url, json=payload, headers=self.headers)
+            
+        if response.status_code not in (200, 201):
+            raise RuntimeError(f"Failed to commit file: {response.status_code} - {response.text}")
+        return response.json()
 
     async def create_pull_request(self, title: str, body: str, head: str, base: str = "main") -> dict:
-        raise NotImplementedError("Phase 2 — create_pull_request not yet implemented")
+        """Create a Pull Request."""
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls"
+        payload = {
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=payload, headers=self.headers)
+            
+        if response.status_code != 201:
+            raise RuntimeError(f"Failed to create PR: {response.status_code} - {response.text}")
+        return response.json()
+
+    async def get_pull_request_files(self, pr_number: int) -> list:
+        """Fetch the list of files modified in a Pull Request, including their patch/diff."""
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls/{pr_number}/files"
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=self.headers)
+            
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to fetch PR files: {response.status_code} - {response.text}")
+        return response.json()
+
+    async def create_pr_review_comment(self, pr_number: int, body: str) -> dict:
+        """Add a general comment to the Pull Request."""
+        # Note: GitHub PR comments use the issues endpoint
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}/issues/{pr_number}/comments"
+        payload = {"body": body}
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=payload, headers=self.headers)
+            
+        if response.status_code != 201:
+            raise RuntimeError(f"Failed to post PR comment: {response.status_code} - {response.text}")
+        return response.json()
+
+    async def get_pr_comments(self, pr_number: int) -> list:
+        """Fetch all comments on the Pull Request (both issue comments and review comments)."""
+        issue_comments_url = f"{GITHUB_API_BASE}/repos/{self.repo}/issues/{pr_number}/comments"
+        review_comments_url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls/{pr_number}/comments"
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            issue_resp = await client.get(issue_comments_url, headers=self.headers)
+            review_resp = await client.get(review_comments_url, headers=self.headers)
+            
+        all_comments = []
+        if issue_resp.status_code == 200:
+            all_comments.extend(issue_resp.json())
+        if review_resp.status_code == 200:
+            all_comments.extend(review_resp.json())
+            
+        return all_comments

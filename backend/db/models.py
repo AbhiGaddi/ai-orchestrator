@@ -8,6 +8,28 @@ from sqlalchemy.orm import relationship
 from backend.db.database import Base
 
 
+class Project(Base):
+    """
+    Project entity to isolate multi-tenant execution contexts.
+    Each task belongs to a project.
+    """
+    __tablename__ = "projects"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    github_repos = Column(JSON, default=list)        # e.g., ["org/backend", "org/frontend"]
+    services_context = Column(JSON, default=dict)    # Details about internal APIs, architecture, etc.
+    coding_guidelines = Column(Text, nullable=True)  # Standards for the agent to follow
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Project id={self.id} name={self.name!r}>"
+
+
 class Task(Base):
     """
     Central task entity. Grows across phases:
@@ -19,6 +41,7 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True) # nullable true for backward compat right now
 
     # Core — Phase 1
     title = Column(String(500), nullable=False)
@@ -35,6 +58,7 @@ class Task(Base):
         # PENDING → APPROVED → IN_PROGRESS → COMPLETED | FAILED
     )
     approved = Column(Boolean, default=False, nullable=False)
+    github_repo = Column(String(200), nullable=True) # e.g. "org/repo-name"
 
     # Phase 1 — TicketAgent
     github_issue_id = Column(String(50), nullable=True)
@@ -45,20 +69,31 @@ class Task(Base):
     github_pr_id = Column(String(50), nullable=True)
     github_pr_url = Column(String(500), nullable=True)
     branch_name = Column(String(200), nullable=True)
+    pr_reviewed = Column(Boolean, default=False)
+
+    # Phase 2.75 - QA / Testing (Stub)
+    tests_passed = Column(Boolean, nullable=True)
+    test_report_url = Column(String(500), nullable=True)
 
     # Phase 3 — BuildAgent (stub columns)
     image_tag = Column(String(200), nullable=True)
     image_built_at = Column(DateTime, nullable=True)
+    build_status = Column(String(50), nullable=True)
+    build_logs_url = Column(String(500), nullable=True)
+    docker_image_url = Column(String(500), nullable=True)
 
     # Phase 4 — DeployAgent (stub columns)
     deployed_at = Column(DateTime, nullable=True)
     deploy_environment = Column(String(100), nullable=True)
+    deployment_status = Column(String(50), nullable=True)
+    deployment_url = Column(String(500), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
+    project = relationship("Project", back_populates="tasks")
     agent_runs = relationship("AgentRun", back_populates="task", cascade="all, delete-orphan")
 
     def __repr__(self):
