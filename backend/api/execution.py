@@ -142,9 +142,11 @@ async def generate_code(
             task.github_pr_id = code_result.output.get("github_pr_id")
             task.github_pr_url = code_result.output.get("github_pr_url")
             task.branch_name = code_result.output.get("branch_name")
-
-        task.status = "COMPLETED"
-        logger.info(f"[Execution API] Task {task_id} Phase 2 completed")
+            task.status = "COMPLETED"
+            logger.info(f"[Execution API] Task {task_id} Phase 2 completed")
+        else:
+            task.status = "FAILED"
+            logger.error(f"[Execution API] Task {task_id} Phase 2 failed: {code_result.error_message}")
 
     except Exception as e:
         task.status = "FAILED"
@@ -187,11 +189,15 @@ async def review_pr(task_id: UUID, db: AsyncSession = Depends(get_db)):
 
     try:
         # Step 4: PR Review & Resolution
-        await orchestrator.run_agent(PRAgent, task, context)
+        review_result = await orchestrator.run_agent(PRAgent, task, context)
         
-        task.pr_reviewed = True
-        task.status = "COMPLETED"
-        logger.info(f"[Execution API] Task {task_id} PR Review completed")
+        if review_result.success:
+            task.pr_reviewed = True
+            task.status = "COMPLETED"
+            logger.info(f"[Execution API] Task {task_id} PR Review completed")
+        else:
+            task.status = "FAILED"
+            logger.error(f"[Execution API] Task {task_id} PR Review failed: {review_result.error_message}")
 
     except Exception as e:
         task.status = "FAILED"

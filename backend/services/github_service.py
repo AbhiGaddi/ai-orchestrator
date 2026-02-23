@@ -56,20 +56,31 @@ class GitHubService:
     # -------------------------------------------------------
     # Phase 2 — CodeAgent & PR Operations
     # -------------------------------------------------------
-    async def get_ref(self, ref: str = "heads/main") -> str:
-        """Get the SHA of a specific reference (e.g., branch)."""
-        url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/ref/{ref}"
+    async def get_ref(self, ref: str = None) -> str:
+        """Get the SHA of a specific reference. If ref is None, try heads/main then heads/master."""
         async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(url, headers=self.headers)
+            if ref:
+                url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/ref/{ref}"
+                response = await client.get(url, headers=self.headers)
+            else:
+                # Try discovery
+                url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/ref/heads/main"
+                response = await client.get(url, headers=self.headers)
+                if response.status_code == 404:
+                    url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/ref/heads/master"
+                    response = await client.get(url, headers=self.headers)
         
         if response.status_code != 200:
             raise RuntimeError(f"GitHub API error {response.status_code}: {response.text}")
         return response.json()["object"]["sha"]
 
-    async def create_branch(self, branch_name: str, from_ref: str = "main") -> dict:
+    async def create_branch(self, branch_name: str, from_ref: str = None) -> dict:
         """Create a new branch from a base branch."""
         # 1. Get the base branch SHA
-        base_sha = await self.get_ref(f"heads/{from_ref}")
+        if from_ref:
+            base_sha = await self.get_ref(f"heads/{from_ref}")
+        else:
+            base_sha = await self.get_ref() # auto-discovery logic above
         
         # 2. Create the new branch ref
         url = f"{GITHUB_API_BASE}/repos/{self.repo}/git/refs"
@@ -84,6 +95,15 @@ class GitHubService:
         if response.status_code != 201:
             raise RuntimeError(f"Failed to create branch: {response.status_code} - {response.text}")
         return response.json()
+
+    async def get_default_branch(self) -> str:
+        """Fetch the default branch name from the repo metadata."""
+        url = f"{GITHUB_API_BASE}/repos/{self.repo}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=self.headers)
+        if response.status_code == 200:
+            return response.json().get("default_branch", "main")
+        return "main"
         
     async def create_or_update_file(self, branch: str, file_path: str, content: str, commit_message: str) -> dict:
         """Create or update a file in the repository."""
@@ -108,8 +128,11 @@ class GitHubService:
             raise RuntimeError(f"Failed to commit file: {response.status_code} - {response.text}")
         return response.json()
 
-    async def create_pull_request(self, title: str, body: str, head: str, base: str = "main") -> dict:
+    async def create_pull_request(self, title: str, body: str, head: str, base: str = None) -> dict:
         """Create a Pull Request."""
+        if not base:
+            base = await self.get_default_branch()
+            
         url = f"{GITHUB_API_BASE}/repos/{self.repo}/pulls"
         payload = {
             "title": title,

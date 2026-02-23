@@ -86,7 +86,7 @@ class CodeAgent(BaseAgent):
             return AgentResult(success=False, error="Failed to generate parseable code")
 
         # 2. GitHub Operations
-        base_branch = context.get('base_branch') or "main"
+        base_branch = context.get('base_branch') # Defaults to None, triggers discovery in GitHubService
         branch_name = context.get('target_branch') or f"feat/task-{context.get('task_id', 'unknown')[:8]}"
         
         try:
