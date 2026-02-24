@@ -16,10 +16,13 @@ export default function Nav() {
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
     useEffect(() => {
-        const saved = localStorage.getItem('theme-mode') as 'light' | 'dark';
-        if (saved) {
-            setTheme(saved);
-            document.documentElement.setAttribute('data-theme', saved);
+        const saved = (localStorage.getItem('theme-mode') as 'light' | 'dark') || 'dark';
+        setTheme(saved);
+        document.documentElement.setAttribute('data-theme', saved);
+        if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
     }, []);
 
@@ -27,6 +30,7 @@ export default function Nav() {
         const next = theme === 'dark' ? 'light' : 'dark';
         setTheme(next);
         document.documentElement.setAttribute('data-theme', next);
+        document.documentElement.classList.toggle('dark', next === 'dark');
         localStorage.setItem('theme-mode', next);
     };
 
@@ -55,11 +59,13 @@ export default function Nav() {
 
                 {/* Theme Toggle Button */}
                 <button
+                    type="button"
                     onClick={toggleTheme}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}
+                    className="nav-theme-toggle"
                     title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                    aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
-                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
 
                 <div className="nav-badge" style={{ marginLeft: 16 }}>

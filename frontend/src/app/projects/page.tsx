@@ -117,8 +117,8 @@ export default function ProjectsPage() {
         <div className="container py-12">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">Projects</h1>
-                    <p className="text-muted-foreground content-sub">
+                    <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Projects</h1>
+                    <p className="text-muted-foreground">
                         Manage your AI Orchestrator execution contexts and isolation boundaries.
                     </p>
                 </div>
@@ -128,12 +128,12 @@ export default function ProjectsPage() {
                     if (!open) resetForm();
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="btn-primary" onClick={() => resetForm()}>Create Project</Button>
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => resetForm()}>Create Project</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] border-white/10 bg-[#141721] text-white">
+                    <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
                             <DialogTitle>{editingProjectId ? 'Edit Project' : 'Create New Project'}</DialogTitle>
-                            <DialogDescription className="text-slate-400">
+                            <DialogDescription>
                                 {editingProjectId
                                     ? 'Update the boundaries and repositories for this project.'
                                     : 'Define the boundaries and repositories for this project\'s AI execution context.'}
@@ -141,64 +141,64 @@ export default function ProjectsPage() {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="name" className="text-slate-300">Name</Label>
+                                <Label htmlFor="name">Name</Label>
                                 <Input
                                     id="name"
                                     placeholder="e.g. Acme Web Client"
-                                    className="bg-black/50 border-white/10"
+                                    className="bg-muted/50 border-border"
                                     value={projectForm.name}
                                     onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="description" className="text-slate-300">Description</Label>
+                                <Label htmlFor="description">Description</Label>
                                 <Textarea
                                     id="description"
                                     placeholder="What does this project do?"
-                                    className="bg-black/50 border-white/10 resize-none h-20"
+                                    className="bg-muted/50 border-border resize-none h-20"
                                     value={projectForm.description}
                                     onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="repos" className="text-slate-300">GitHub Repositories</Label>
+                                <Label htmlFor="repos">GitHub Repositories</Label>
                                 <Input
                                     id="repos"
                                     placeholder="owner/repo1, owner/repo2"
-                                    className="bg-black/50 border-white/10"
+                                    className="bg-muted/50 border-border"
                                     value={projectForm.github_repos}
                                     onChange={(e) => setProjectForm({ ...projectForm, github_repos: e.target.value })}
                                 />
-                                <p className="text-xs text-slate-500">Comma separated format (e.g. AbhiGaddi/ai-orchestrator)</p>
+                                <p className="text-xs text-muted-foreground">Comma separated format (e.g. AbhiGaddi/ai-orchestrator)</p>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="guidelines" className="text-slate-300">Coding Guidelines (Optional)</Label>
+                                <Label htmlFor="guidelines">Coding Guidelines (Optional)</Label>
                                 <Textarea
                                     id="guidelines"
                                     placeholder="e.g. Use Python 3.10 and strict type checking."
-                                    className="bg-black/50 border-white/10 resize-none h-24"
+                                    className="bg-muted/50 border-border resize-none h-24"
                                     value={projectForm.coding_guidelines}
                                     onChange={(e) => setProjectForm({ ...projectForm, coding_guidelines: e.target.value })}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                            <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="sonar_key" className="text-slate-300">Sonar Project Key</Label>
+                                    <Label htmlFor="sonar_key">Sonar Project Key</Label>
                                     <Input
                                         id="sonar_key"
                                         placeholder="project-key"
-                                        className="bg-black/50 border-white/10"
+                                        className="bg-muted/50 border-border"
                                         value={projectForm.sonar_project_key}
                                         onChange={(e) => setProjectForm({ ...projectForm, sonar_project_key: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="sonar_token" className="text-slate-300">Sonar Token</Label>
+                                    <Label htmlFor="sonar_token">Sonar Token</Label>
                                     <Input
                                         id="sonar_token"
                                         type="password"
                                         placeholder="squ_..."
-                                        className="bg-black/50 border-white/10"
+                                        className="bg-muted/50 border-border"
                                         value={projectForm.sonar_token}
                                         onChange={(e) => setProjectForm({ ...projectForm, sonar_token: e.target.value })}
                                     />
@@ -206,10 +206,10 @@ export default function ProjectsPage() {
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="ghost" className="text-slate-300 hover:text-white" onClick={() => setIsDialogOpen(false)}>
+                            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button className="btn-primary border-none" onClick={handleSubmit}>
+                            <Button onClick={handleSubmit}>
                                 {editingProjectId ? 'Update Project' : 'Save Project'}
                             </Button>
                         </DialogFooter>
@@ -224,31 +224,31 @@ export default function ProjectsPage() {
                     ))}
                 </div>
             ) : projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-20 border border-white/5 border-dashed rounded-xl bg-white/[0.02]">
-                    <h3 className="text-xl font-bold mb-2">No projects yet</h3>
-                    <p className="text-slate-400 mb-6 text-center max-w-sm">
+                <div className="flex flex-col items-center justify-center p-20 border border-dashed border-border rounded-xl bg-muted/30">
+                    <h3 className="text-xl font-bold mb-2 text-foreground">No projects yet</h3>
+                    <p className="text-muted-foreground mb-6 text-center max-w-sm">
                         Projects act as isolated sandboxes for your agents. Create one to get started.
                     </p>
-                    <Button className="btn-primary" onClick={() => setIsDialogOpen(true)}>Create Project</Button>
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsDialogOpen(true)}>Create Project</Button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {projects.map((project) => (
-                        <Card key={project.id} className="bg-[#141721] border-white/10 hover:border-white/20 transition-colors">
+                        <Card key={project.id} className="border-border hover:border-border/80 transition-colors shadow-sm">
                             <CardHeader className="pb-4">
-                                <CardTitle className="text-xl">{project.name}</CardTitle>
-                                <CardDescription className="text-slate-400 line-clamp-2 min-h-[40px]">
+                                <CardTitle className="text-xl text-foreground">{project.name}</CardTitle>
+                                <CardDescription className="line-clamp-2 min-h-[40px]">
                                     {project.description || "No description provided."}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pb-4 border-b border-white/5 mx-6 px-0 mb-4">
-                                <div className="flex flex-col gap-2 text-sm text-slate-300">
+                            <CardContent className="pb-4 border-b border-border mx-6 px-0 mb-4">
+                                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-500">Repositories</span>
+                                        <span>Repositories</span>
                                         <span className="font-mono text-xs">{project.github_repos?.length || 0} configured</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-500">Guidelines</span>
+                                        <span>Guidelines</span>
                                         <span>{project.coding_guidelines ? "Yes" : "None"}</span>
                                     </div>
                                 </div>
@@ -257,18 +257,18 @@ export default function ProjectsPage() {
                                 <div className="flex gap-2">
                                     <Button
                                         variant="secondary"
-                                        className="bg-white/5 hover:bg-white/10 border-white/10 text-xs h-8"
+                                        className="text-xs h-8"
                                         onClick={() => openEdit(project)}
                                     >
                                         <Edit2 size={12} className="mr-2" /> Edit
                                     </Button>
                                     <Link href={`/projects/${project.id}`}>
-                                        <Button variant="secondary" className="bg-white/5 hover:bg-white/10 border-white/10 text-xs h-8">
+                                        <Button variant="secondary" className="text-xs h-8">
                                             <ExternalLink size={12} className="mr-2" /> Dashboard
                                         </Button>
                                     </Link>
                                 </div>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-muted-foreground">
                                     Created {new Date(project.created_at).toLocaleDateString()}
                                 </p>
                             </CardFooter>

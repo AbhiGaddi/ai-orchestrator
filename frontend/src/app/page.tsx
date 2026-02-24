@@ -71,8 +71,8 @@ export default function HomePage() {
       {/* Pipeline phases */}
       <section className="container" style={{ paddingBottom: 80 }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ marginBottom: 8 }}>Multi-Phase Pipeline</h2>
-          <p>Each phase plugs in cleanly — no rewrites, just new agents.</p>
+          <h2 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Multi-Phase Pipeline</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>Each phase plugs in cleanly — no rewrites, just new agents.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
           {phases.map(p => (
