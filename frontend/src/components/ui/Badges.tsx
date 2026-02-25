@@ -15,9 +15,9 @@ const priorityMap: Record<string, string> = {
     CRITICAL: 'priority-critical',
 };
 
-export function StatusBadge({ status }: { status: Task['status'] }) {
-    const label = status.replace('_', ' ');
-    return <span className={`badge ${statusMap[status] ?? 'badge-pending'}`}>{label}</span>;
+export function StatusBadge({ status, label }: { status: string, label?: string }) {
+    const displayLabel = label || status.replace('_', ' ');
+    return <span className={`badge ${statusMap[status] ?? 'badge-pending'}`}>{displayLabel}</span>;
 }
 
 export function PriorityBadge({ priority }: { priority: Task['priority'] }) {
