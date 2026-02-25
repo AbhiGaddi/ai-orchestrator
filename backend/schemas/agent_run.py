@@ -17,3 +17,20 @@ class AgentRunResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AgentRunStepResponse(BaseModel):
+    id: UUID
+    agent_run_id: UUID
+    step_number: int
+    thought: Optional[str]
+    tool_called: Optional[str]
+    tool_input: Optional[Any]
+    tool_output: Optional[str]
+    prompt_tokens: int
+    completion_tokens: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

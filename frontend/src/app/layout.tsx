@@ -3,8 +3,8 @@ import './globals.css';
 import Nav from '@/components/ui/Nav';
 
 export const metadata: Metadata = {
-  title: 'AI Orchestrator — Multi-Phase AI Pipeline',
-  description: 'Discussion → Tasks → GitHub Issue → Email → Code → Build → Deploy',
+  title: 'Flow — AI Workspace Engine',
+  description: 'Multi-Phase AI Pipeline: Discussion → Tasks → GitHub → SonarQube → Notification',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

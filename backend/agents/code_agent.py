@@ -1,130 +1,108 @@
 import json
-import re
 from backend.agents.base_agent import BaseAgent, AgentResult
 from backend.services.github_service import GitHubService
-from backend.services.gemini_service import GeminiService
+from backend.services.llm_provider import GeminiProvider
+from backend.agents.base_v2 import BoundedReActAgent, ToolRegistry
 from backend.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# --- CODE AGENT CONSTITUTION ---
-SYSTEM_CONSTITUTION = """
-<IDENTITY>
-You are a Staff Software Engineer. Your job is to generate production-ready code based on a task description and project context.
-</IDENTITY>
-
-<CODING_PROTOCOL>
-Before writing code, analyze the task. Determine which files need to be created or modified. 
-Your output MUST be a strict JSON object mapping file paths to their complete, raw string contents.
-Do not include any explanation text outside the JSON block.
-
-If the file is a TypeScript/JavaScript file, include necessary imports.
-If the project has specific coding guidelines, follow them.
-</CODING_PROTOCOL>
-
-<OUTPUT_SCHEMA>
-{{
-  "file_path_1.ts": "content of file 1",
-  "folder/file_path_2.tsx": "content of file 2"
-}}
-</OUTPUT_SCHEMA>
-"""
-
-USER_PROMPT = """
-<TASK_DETAILS>
-Title: {title}
-Description: {description}
-Acceptance Criteria: {acceptance_criteria}
-Issue ID: {issue_id}
-</TASK_DETAILS>
-
-<CONTEXT>
-Guidelines: {guidelines}
-Architecture: {architecture}
-</CONTEXT>
-
-Generate the necessary code for this task and return it strictly according to the <OUTPUT_SCHEMA>.
-"""
-
 class CodeAgent(BaseAgent):
     name = "CodeAgent"
 
-    def __init__(self):
-        self.llm = GeminiService()
-
     async def run(self, context: dict) -> AgentResult:
+        run_id = getattr(self, "run_id", None)
+        db_session = getattr(self, "db_session", None)
+
+        if not run_id or not db_session:
+            return AgentResult(success=False, error="run_id and db_session required for CodeAgent V2")
+
         self.github = GitHubService(repo=context.get("github_repo"))
+        base_branch = context.get('base_branch')
+        branch_name = context.get('target_branch') or f"feat/task-{context.get('task_id', 'unknown')[:8]}"
         title = context.get("title", "")
         description = context.get("description", "")
-        acceptance_criteria = context.get("acceptance_criteria", "")
         issue_id = context.get("github_issue_id", "N/A")
-        
-        guidelines = context.get("project_guidelines", "Standard best practices.")
-        architecture = context.get("services_architecture", "No specific architecture provided.")
 
-        if not title:
-            return AgentResult(success=False, error="Task title is required for coding")
+        # 1. Initialize ReAct tools
+        registry = ToolRegistry()
 
-        # 1. Generate Code (Reasoning & Action Planning)
-        prompt = f"{SYSTEM_CONSTITUTION}\n\n{USER_PROMPT.format(title=title, description=description, acceptance_criteria=acceptance_criteria, issue_id=issue_id, guidelines=guidelines, architecture=architecture)}"
+        # Tool 1: File Search
+        async def search_codebase(file_path: str) -> str:
+            """Read a file from the repository to understand the existing codebase."""
+            try:
+                # Fallback to main/master if base_branch is not explicitly passed
+                branch = base_branch or await self.github.get_default_branch()
+                content = await self.github.get_file_content(file_path, ref=branch)
+                return f"--- BEGIN {file_path} ---\n{content}\n--- END {file_path} ---"
+            except Exception as e:
+                return f"Error reading {file_path}: {e}"
 
-        logger.info(f"[{self.name}] Generating code for task: {title}")
-        raw_response = await self.llm.complete(prompt)
-        
-        # Clean markdown formatting if present
-        clean_response = raw_response
-        match = re.search(r'\{.*\}', raw_response, re.DOTALL)
-        if match:
-            clean_response = match.group(0)
-            
-        try:
-            files_to_commit = json.loads(clean_response)
-            if not files_to_commit or not isinstance(files_to_commit, dict):
-                return AgentResult(success=False, error="Invalid code format returned from LLM")
-        except Exception as e:
-            logger.error(f"[{self.name}] Failed to parse code JSON: {e}")
-            return AgentResult(success=False, error="Failed to generate parseable code")
-
-        # 2. GitHub Operations
-        base_branch = context.get('base_branch') # Defaults to None, triggers discovery in GitHubService
-        branch_name = context.get('target_branch') or f"feat/task-{context.get('task_id', 'unknown')[:8]}"
-        
-        try:
-            logger.info(f"[{self.name}] Creating branch {branch_name} from {base_branch}")
-            await self.github.create_branch(branch_name, from_ref=base_branch)
-            
-            # Commit files sequentially
-            for file_path, content in files_to_commit.items():
-                logger.info(f"[{self.name}] Committing file: {file_path}")
-                await self.github.create_or_update_file(
-                    branch=branch_name,
-                    file_path=file_path,
-                    content=str(content),
-                    commit_message=f"Auto-generated code for {file_path}"
+        # Tool 2: Push & Deliver
+        async def apply_code_and_pr(files: dict) -> str:
+            """Commit generated files and open a Pull Request. Input files must be a dict mapping string file paths to string file contents."""
+            try:
+                await self.github.create_branch(branch_name, from_ref=base_branch)
+                for file_path, content in files.items():
+                    logger.info(f"[{self.name}] Committing file: {file_path}")
+                    await self.github.create_or_update_file(
+                        branch=branch_name,
+                        file_path=file_path,
+                        content=str(content),
+                        commit_message=f"Auto-generated code for {file_path}"
+                    )
+                pr_result = await self.github.create_pull_request(
+                    title=f"Feat: {title}",
+                    body=f"## AI Generated PR\n\nCloses #{issue_id}\n\n{description}",
+                    head=branch_name,
+                    base=base_branch
                 )
                 
-            # Create Pull Request
-            pr_title = f"Feat: {title}"
-            pr_body = f"## AI Generated PR\n\nCloses #{issue_id} if applicable.\n\nDescription: {description}"
-            logger.info(f"[{self.name}] Opening Pull Request")
-            
-            pr_result = await self.github.create_pull_request(
-                title=pr_title,
-                body=pr_body,
-                head=branch_name,
-                base=base_branch
-            )
-            
-        except Exception as e:
-            logger.error(f"[{self.name}] GitHub operation failed: {e}")
-            return AgentResult(success=False, error=str(e))
+                # We return JSON string from the tool 
+                return json.dumps({
+                    "github_pr_id": str(pr_result.get("number", "")),
+                    "github_pr_url": pr_result.get("html_url", ""),
+                    "branch_name": branch_name
+                })
+            except Exception as e:
+                return json.dumps({"error": str(e)})
 
-        logger.info(f"[{self.name}] PR created: {pr_result['html_url']}")
-        return AgentResult(
-            success=True,
-            output={
-                "github_pr_id": str(pr_result.get("number", "")),
-                "github_pr_url": pr_result.get("html_url", ""),
-                "branch_name": branch_name
-            },
+        registry.register(
+            name="search_codebase",
+            description="Reads the contents of an existing file in the repository. Input kwargs: file_path (string).",
+            func=search_codebase
         )
+        registry.register(
+            name="apply_code_and_pr",
+            description="Commits code files and opens a PR. Input kwargs: files (dictionary mapping string file paths to string file contents). Always use this when you are ready to deliver the final code. Stop and output the final answer after this succeeds.",
+            func=apply_code_and_pr
+        )
+
+        llm = GeminiProvider()
+        agent = BoundedReActAgent(llm_provider=llm, tool_registry=registry, max_steps=5)
+
+        logger.info(f"[{self.name}] Starting Bounded ReAct loop for task: {title}")
+        
+        try:
+            # Inject context
+            internal_context = {
+                "task_title": title,
+                "task_description": description,
+                "guidelines": context.get("project_guidelines", "Follow standard best practices."),
+                "architecture": context.get("services_architecture", "No architecture provided.")
+            }
+
+            final_output = await agent.run(internal_context, agent_run_id=run_id, db_session=db_session)
+            
+            # Since the tools act on Github, we need to extract the PR info for Orchestrator Promotion
+            # We enforce final_output to contain the PR tracking info in system prompt, 
+            # but we can fallback to searching agent runs if needed. We'll assume the final_output has it.
+            
+            if "error" in (final_output or {}):
+                return AgentResult(success=False, error=final_output["error"])
+
+            return AgentResult(success=True, output=final_output)
+
+        except Exception as e:
+            logger.error(f"[{self.name}] ReAct loop failed: {e}")
+            return AgentResult(success=False, error=str(e))

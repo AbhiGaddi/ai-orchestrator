@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import (
-    Column, String, Boolean, DateTime, Text, ForeignKey, JSON
+    Column, String, Boolean, DateTime, Text, ForeignKey, JSON, Integer
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -131,6 +131,36 @@ class AgentRun(Base):
 
     # Relationships
     task = relationship("Task", back_populates="agent_runs")
+    steps = relationship("AgentRunStep", back_populates="agent_run", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<AgentRun agent={self.agent_name} task={self.task_id} status={self.status}>"
+
+
+class AgentRunStep(Base):
+    """
+    Individual step within a single agent run.
+    Provides fine-grained observability of the reasoning loop (ReAct). 
+    """
+    __tablename__ = "agent_run_steps"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    agent_run_id = Column(UUID(as_uuid=True), ForeignKey("agent_runs.id"), nullable=False)
+    step_number = Column(Integer, default=1, nullable=False)
+
+    thought = Column(Text, nullable=True)
+    tool_called = Column(String(100), nullable=True)
+    tool_input = Column(JSON, nullable=True)
+    tool_output = Column(Text, nullable=True)
+
+    prompt_tokens = Column(Integer, default=0)
+    completion_tokens = Column(Integer, default=0)
+    
+    status = Column(String(50), default="PENDING", nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    agent_run = relationship("AgentRun", back_populates="steps")
+
+    def __repr__(self):
+        return f"<AgentRunStep run={self.agent_run_id} step={self.step_number} tool={self.tool_called}>"

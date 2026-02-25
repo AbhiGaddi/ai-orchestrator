@@ -2,280 +2,345 @@
 
 import { useEffect, useState } from "react";
 import { Project } from "@/types";
-import { listProjects, createProject, updateProject } from "@/lib/api";
+import { listProjects } from "@/lib/api";
 import { toast } from "@/components/ui/Toast";
-import Link from 'next/link';
-import { Edit2, ExternalLink } from 'lucide-react';
+import ToastContainer from "@/components/ui/Toast";
+import Link from "next/link";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-    CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+    Edit2, Plus, FolderOpen, Github,
+    BookOpen, LayoutDashboard, ChevronRight,
+    ShieldCheck, GitBranch, Sparkles,
+} from "lucide-react";
+
+/* Accent colours cycling per project index */
+const ACCENTS = [
+    { color: '#a855f7', glow: 'rgba(168,85,247,0.12)' },
+    { color: '#6366f1', glow: 'rgba(99,102,241,0.12)' },
+    { color: '#10b981', glow: 'rgba(16,185,129,0.12)' },
+    { color: '#22d3ee', glow: 'rgba(34,211,238,0.12)' },
+    { color: '#f59e0b', glow: 'rgba(245,158,11,0.12)' },
+    { color: '#ec4899', glow: 'rgba(236,72,153,0.12)' },
+];
+
+function ProjectCard({ project, index }: { project: Project; index: number }) {
+    const accent = ACCENTS[index % ACCENTS.length];
+    const [hovered, setHovered] = useState(false);
+
+    const repoCount = project.github_repos?.length ?? 0;
+    const hasGuidelines = !!project.coding_guidelines;
+    const hasSonar = !!project.sonar_project_key;
+    const createdDate = new Date(project.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    return (
+        <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                background: 'var(--bg-card)',
+                border: `1px solid ${hovered ? `${accent.color}40` : 'var(--border)'}`,
+                borderRadius: 16,
+                overflow: 'hidden',
+                transition: 'all 0.2s ease',
+                transform: hovered ? 'translateY(-3px)' : 'none',
+                boxShadow: hovered ? `0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accent.color}20` : '0 2px 8px rgba(0,0,0,0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
+            {/* Coloured top stripe */}
+            <div style={{
+                height: 3,
+                background: `linear-gradient(90deg, ${accent.color}, ${accent.color}60)`,
+                opacity: hovered ? 1 : 0.5,
+                transition: 'opacity 0.2s',
+            }} />
+
+            {/* Header */}
+            <div style={{ padding: '20px 20px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                    {/* Project icon */}
+                    <div style={{
+                        width: 40, height: 40, borderRadius: 10,
+                        background: accent.glow,
+                        border: `1px solid ${accent.color}30`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                    }}>
+                        <FolderOpen size={18} color={accent.color} />
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2, letterSpacing: '-0.02em' }}>
+                            {project.name}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                            ID: {project.id.slice(0, 8)}…
+                        </div>
+                    </div>
+
+                    {/* Live dot */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '3px 8px',
+                        borderRadius: 999,
+                        background: accent.glow,
+                        border: `1px solid ${accent.color}25`,
+                        flexShrink: 0,
+                    }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: accent.color, display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.62rem', fontWeight: 700, color: accent.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active</span>
+                    </div>
+                </div>
+
+                {/* Description */}
+                <p style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.6,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as const,
+                    overflow: 'hidden',
+                    minHeight: 38,
+                }}>
+                    {project.description || "No description provided."}
+                </p>
+            </div>
+
+            {/* Stat chips */}
+            <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {/* Repos */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--border)',
+                }}>
+                    <Github size={11} color="var(--text-muted)" />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+                    </span>
+                </div>
+
+                {/* Guidelines */}
+                {hasGuidelines && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 8,
+                        background: 'rgba(16,185,129,0.08)',
+                        border: '1px solid rgba(16,185,129,0.2)',
+                    }}>
+                        <BookOpen size={11} color="#10b981" />
+                        <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Guidelines</span>
+                    </div>
+                )}
+
+                {/* SonarQube */}
+                {hasSonar && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 8,
+                        background: 'rgba(245,158,11,0.08)',
+                        border: '1px solid rgba(245,158,11,0.2)',
+                    }}>
+                        <ShieldCheck size={11} color="#f59e0b" />
+                        <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 600 }}>Sonar</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: 'var(--border)', margin: '0 20px' }} />
+
+            {/* Footer */}
+            <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    Created {createdDate}
+                </span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Link href={`/projects/edit/${project.id}`}>
+                        <button
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '6px 14px', borderRadius: 8,
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--text-secondary)',
+                                fontSize: '0.75rem', fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
+                                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+                            }}
+                        >
+                            <Edit2 size={12} /> Edit
+                        </button>
+                    </Link>
+                    <Link href={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
+                        <button style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 14px', borderRadius: 8,
+                            background: accent.glow,
+                            border: `1px solid ${accent.color}30`,
+                            color: accent.color,
+                            fontSize: '0.75rem', fontWeight: 700,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            transition: 'all 0.15s',
+                        }}>
+                            <LayoutDashboard size={12} /> Dashboard
+                            <ChevronRight size={11} />
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-    const [projectForm, setProjectForm] = useState({
-        name: "",
-        description: "",
-        github_repos: "",
-        coding_guidelines: "",
-        sonar_project_key: "",
-        sonar_token: "",
-    });
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
+    useEffect(() => { fetchProjects(); }, []);
 
     const fetchProjects = async () => {
         try {
             setIsLoading(true);
-            const data = await listProjects();
-            setProjects(data);
-        } catch (error: any) {
-            toast("error", error.message || "Failed to fetch projects");
+            setProjects(await listProjects());
+        } catch (e: unknown) {
+            toast("error", e instanceof Error ? e.message : "Failed to fetch projects");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleSubmit = async () => {
-        if (!projectForm.name) {
-            toast("error", "Project name is required");
-            return;
-        }
-
-        try {
-            const payload = {
-                name: projectForm.name,
-                description: projectForm.description,
-                github_repos: projectForm.github_repos
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                coding_guidelines: projectForm.coding_guidelines,
-                sonar_project_key: projectForm.sonar_project_key,
-                sonar_token: projectForm.sonar_token,
-                services_context: {},
-            };
-
-            if (editingProjectId) {
-                const updated = await updateProject(editingProjectId, payload);
-                setProjects(projects.map(p => p.id === editingProjectId ? updated : p));
-                toast("success", "Project updated successfully");
-            } else {
-                const created = await createProject(payload);
-                setProjects([created, ...projects]);
-                toast("success", "Project created successfully");
-            }
-
-            setIsDialogOpen(false);
-            resetForm();
-        } catch (error: any) {
-            toast("error", error.message || "Operation failed");
-        }
-    };
-
-    const resetForm = () => {
-        setProjectForm({ name: "", description: "", github_repos: "", coding_guidelines: "", sonar_project_key: "", sonar_token: "" });
-        setEditingProjectId(null);
-    };
-
-    const openEdit = (project: Project) => {
-        setProjectForm({
-            name: project.name,
-            description: project.description || "",
-            github_repos: (project.github_repos || []).join(", "),
-            coding_guidelines: project.coding_guidelines || "",
-            sonar_project_key: project.sonar_project_key || "",
-            sonar_token: project.sonar_token || "",
-        });
-        setEditingProjectId(project.id);
-        setIsDialogOpen(true);
-    };
-
     return (
-        <div className="container py-12">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">Projects</h1>
-                    <p className="text-muted-foreground content-sub">
-                        Manage your AI Orchestrator execution contexts and isolation boundaries.
-                    </p>
-                </div>
+        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
+            <ToastContainer />
+            <div className="glow-blob glow-blob-1" />
+            <div className="glow-blob glow-blob-2" />
 
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                    setIsDialogOpen(open);
-                    if (!open) resetForm();
+            <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: 44, paddingBottom: 80, maxWidth: 1600, padding: '0 80px' }}>
+
+                {/* ── Page Header: Unified Hero ── */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gap: 40,
+                    alignItems: 'center',
+                    marginBottom: 48,
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
+                    padding: '32px 40px',
+                    borderRadius: 24,
+                    border: '1px solid var(--border)',
                 }}>
-                    <DialogTrigger asChild>
-                        <Button className="btn-primary" onClick={() => resetForm()}>Create Project</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] border-white/10 bg-[#141721] text-white">
-                        <DialogHeader>
-                            <DialogTitle>{editingProjectId ? 'Edit Project' : 'Create New Project'}</DialogTitle>
-                            <DialogDescription className="text-slate-400">
-                                {editingProjectId
-                                    ? 'Update the boundaries and repositories for this project.'
-                                    : 'Define the boundaries and repositories for this project\'s AI execution context.'}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="text-slate-300">Name</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="e.g. Acme Web Client"
-                                    className="bg-black/50 border-white/10"
-                                    value={projectForm.name}
-                                    onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="description" className="text-slate-300">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    placeholder="What does this project do?"
-                                    className="bg-black/50 border-white/10 resize-none h-20"
-                                    value={projectForm.description}
-                                    onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="repos" className="text-slate-300">GitHub Repositories</Label>
-                                <Input
-                                    id="repos"
-                                    placeholder="owner/repo1, owner/repo2"
-                                    className="bg-black/50 border-white/10"
-                                    value={projectForm.github_repos}
-                                    onChange={(e) => setProjectForm({ ...projectForm, github_repos: e.target.value })}
-                                />
-                                <p className="text-xs text-slate-500">Comma separated format (e.g. AbhiGaddi/ai-orchestrator)</p>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="guidelines" className="text-slate-300">Coding Guidelines (Optional)</Label>
-                                <Textarea
-                                    id="guidelines"
-                                    placeholder="e.g. Use Python 3.10 and strict type checking."
-                                    className="bg-black/50 border-white/10 resize-none h-24"
-                                    value={projectForm.coding_guidelines}
-                                    onChange={(e) => setProjectForm({ ...projectForm, coding_guidelines: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="sonar_key" className="text-slate-300">Sonar Project Key</Label>
-                                    <Input
-                                        id="sonar_key"
-                                        placeholder="project-key"
-                                        className="bg-black/50 border-white/10"
-                                        value={projectForm.sonar_project_key}
-                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_project_key: e.target.value })}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="sonar_token" className="text-slate-300">Sonar Token</Label>
-                                    <Input
-                                        id="sonar_token"
-                                        type="password"
-                                        placeholder="squ_..."
-                                        className="bg-black/50 border-white/10"
-                                        value={projectForm.sonar_token}
-                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_token: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+                    {/* Left: Branding & Info */}
+                    <div style={{ maxWidth: 700 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.22)', marginBottom: 16 }}>
+                            <FolderOpen size={11} color="#c084fc" />
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c084fc', letterSpacing: '0.07em', textTransform: 'uppercase' }}>Workspace Engine</span>
                         </div>
-                        <DialogFooter>
-                            <Button variant="ghost" className="text-slate-300 hover:text-white" onClick={() => setIsDialogOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button className="btn-primary border-none" onClick={handleSubmit}>
-                                {editingProjectId ? 'Update Project' : 'Save Project'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 12, color: 'var(--text-primary)' }}>Flow Projects</h1>
+                        <p style={{ fontSize: '0.98rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 640 }}>
+                            Isolated execution contexts for your AI agents. Each Flow workspace encapsulates repositories, architectural guidelines, and security quality gates.
+                        </p>
+                    </div>
 
-            {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-[200px] rounded-xl skeleton"></div>
-                    ))}
-                </div>
-            ) : projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-20 border border-white/5 border-dashed rounded-xl bg-white/[0.02]">
-                    <h3 className="text-xl font-bold mb-2">No projects yet</h3>
-                    <p className="text-slate-400 mb-6 text-center max-w-sm">
-                        Projects act as isolated sandboxes for your agents. Create one to get started.
-                    </p>
-                    <Button className="btn-primary" onClick={() => setIsDialogOpen(true)}>Create Project</Button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.map((project) => (
-                        <Card key={project.id} className="bg-[#141721] border-white/10 hover:border-white/20 transition-colors">
-                            <CardHeader className="pb-4">
-                                <CardTitle className="text-xl">{project.name}</CardTitle>
-                                <CardDescription className="text-slate-400 line-clamp-2 min-h-[40px]">
-                                    {project.description || "No description provided."}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pb-4 border-b border-white/5 mx-6 px-0 mb-4">
-                                <div className="flex flex-col gap-2 text-sm text-slate-300">
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Repositories</span>
-                                        <span className="font-mono text-xs">{project.github_repos?.length || 0} configured</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Guidelines</span>
-                                        <span>{project.coding_guidelines ? "Yes" : "None"}</span>
-                                    </div>
+                    {/* Right: Actions & Stats */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'flex-end', minWidth: 320 }}>
+                        <Link href="/projects/new" style={{ width: '100%' }}>
+                            <button
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '14px 28px', borderRadius: 14,
+                                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                                    border: 'none', color: '#fff',
+                                    fontSize: '1rem', fontWeight: 800,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                    boxShadow: '0 8px 24px rgba(168,85,247,0.3)',
+                                    transition: 'all 0.2s',
+                                    width: '100%',
+                                    justifyContent: 'center'
+                                }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 12px 32px rgba(168,85,247,0.45)';
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(168,85,247,0.3)';
+                                }}
+                            >
+                                <Plus size={20} /> Initialize Project
+                            </button>
+                        </Link>
+
+                        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+                            {[
+                                { icon: FolderOpen, label: 'Projects', value: projects.length, color: '#a855f7' },
+                                { icon: GitBranch, label: 'Repos', value: projects.reduce((s, p) => s + (p.github_repos?.length ?? 0), 0), color: '#6366f1' },
+                                { icon: ShieldCheck, label: 'Sonar', value: projects.filter(p => p.sonar_project_key).length, color: '#f59e0b' },
+                            ].map(s => (
+                                <div key={s.label} style={{
+                                    flex: 1,
+                                    padding: '12px', borderRadius: 14,
+                                    background: 'rgba(0,0,0,0.2)',
+                                    border: '1px solid var(--border)',
+                                    textAlign: 'center',
+                                }}>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: s.color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.value}</div>
+                                    <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
                                 </div>
-                            </CardContent>
-                            <CardFooter className="pt-0 justify-between">
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        className="bg-white/5 hover:bg-white/10 border-white/10 text-xs h-8"
-                                        onClick={() => openEdit(project)}
-                                    >
-                                        <Edit2 size={12} className="mr-2" /> Edit
-                                    </Button>
-                                    <Link href={`/projects/${project.id}`}>
-                                        <Button variant="secondary" className="bg-white/5 hover:bg-white/10 border-white/10 text-xs h-8">
-                                            <ExternalLink size={12} className="mr-2" /> Dashboard
-                                        </Button>
-                                    </Link>
-                                </div>
-                                <p className="text-xs text-slate-500">
-                                    Created {new Date(project.created_at).toLocaleDateString()}
-                                </p>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                            ))}
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                {/* ── Content ── */}
+                {isLoading ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+                        {[1, 2, 3].map(i => (
+                            <div key={i} style={{ height: 260, borderRadius: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', animation: 'pulse 1.5s infinite' }} />
+                        ))}
+                    </div>
+                ) : projects.length === 0 ? (
+                    <div style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        padding: '100px 40px',
+                        border: '1.5px dashed rgba(168,85,247,0.2)', borderRadius: 24,
+                        background: 'rgba(168,85,247,0.03)',
+                    }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                            <FolderOpen size={30} color="#a855f7" />
+                        </div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 10, color: 'var(--text-primary)' }}>No active projects</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', textAlign: 'center', maxWidth: 400, marginBottom: 32, lineHeight: 1.7 }}>
+                            Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks.
+                        </p>
+                        <Link href="/projects/new">
+                            <button
+                                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(168,85,247,0.35)' }}
+                            >
+                                <Plus size={20} /> Initialize Workspace
+                            </button>
+                        </Link>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+                        {projects.map((project, i) => (
+                            <ProjectCard key={project.id} project={project} index={i} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

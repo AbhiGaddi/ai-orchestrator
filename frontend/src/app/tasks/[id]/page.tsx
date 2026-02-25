@@ -83,9 +83,12 @@ export default function TaskDetailPage() {
 
 
     return (
-        <>
-            <div className="container">
-                <ToastContainer />
+        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
+            <ToastContainer />
+            <div className="glow-blob glow-blob-1" />
+            <div className="glow-blob glow-blob-2" />
+
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingTop: 20 }}>
                 <div style={{ marginBottom: 20 }}>
                     <Link href="/tasks" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
                         <ArrowLeft size={16} /> Back to Tasks
@@ -330,7 +333,7 @@ export default function TaskDetailPage() {
                     </div>
                 )
             }
-        </>
+        </div>
     );
 }
 

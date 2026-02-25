@@ -73,6 +73,20 @@ export interface AgentRun {
     completed_at: string | null;
 }
 
+export interface AgentRunStep {
+    id: string;
+    agent_run_id: string;
+    step_number: number;
+    thought: string | null;
+    tool_called: string | null;
+    tool_input: Record<string, unknown> | null;
+    tool_output: string | null;
+    prompt_tokens: number;
+    completion_tokens: number;
+    status: string;
+    created_at: string;
+}
+
 export interface ExtractResponse {
     tasks: Task[];
     count: number;

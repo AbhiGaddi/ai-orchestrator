@@ -1,4 +1,4 @@
-import { ExtractResponse, Task, AgentRun, Project } from '@/types';
+import { ExtractResponse, Task, AgentRun, AgentRunStep, Project } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -117,3 +117,6 @@ export const listAgentRuns = (taskId?: string): Promise<AgentRun[]> => {
     const qs = taskId ? `?task_id=${taskId}` : '';
     return fetchApi(`/api/agent-runs${qs}`);
 };
+
+export const getAgentRunSteps = (runId: string): Promise<AgentRunStep[]> =>
+    fetchApi(`/api/agent-runs/${runId}/steps`);

@@ -132,6 +132,10 @@ class Orchestrator:
         self.db.add(run)
         await self.db.flush()
 
+        agent.run_id = str(run.id)
+
+        agent.db_session = self.db
+        
         logger.info(f"[{agent_name}] Running for task_id={task.id} (User: {uid})")
         
         try:
