@@ -6,12 +6,15 @@
 
 /* ─── Design Tokens — Purple Theme ──────────────────────────────────────── */
 :root {
-  /* Background stack: deep warm violet → near-black */
-  --bg-base: #0C0A1A;
-  --bg-surface: #130F26;
-  --bg-card: #17122E;
-  --bg-card-hover: #1E1840;
-  --bg-input: #130F26;
+  --bg-base: #111827;
+  --bg-surface: #1f2937;
+  --bg-card: #1f2937;
+  --bg-card-hover: #374151;
+  --bg-input: #1f2937;
+  --bg-nav: rgba(10, 12, 16, 0.85);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-focus: rgba(99, 102, 241, 0.6);
 
   /* Borders with purple tint */
   --border: rgba(168, 85, 247, 0.12);
@@ -64,9 +67,11 @@
   --bg-card: #ffffff;
   --bg-card-hover: #f3eeff;
   --bg-input: #ffffff;
-  --border: rgba(168, 85, 247, 0.12);
-  --border-hover: rgba(168, 85, 247, 0.22);
-  --border-focus: rgba(168, 85, 247, 0.6);
+  --bg-nav: rgba(248, 250, 252, 0.92);
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --border-focus: rgba(99, 102, 241, 0.6);
 
   --text-primary: #1a0a3c;
   --text-secondary: #5b4a7a;
@@ -118,8 +123,9 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--text-muted);
   border-radius: 999px;
+  opacity: 0.5;
 }
 
 :root[data-theme='light'] ::-webkit-scrollbar-thumb {
@@ -127,6 +133,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+:root[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+:root[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
 
@@ -185,16 +199,11 @@ pre {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(12, 10, 26, 0.85);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border-bottom: 1px solid rgba(168, 85, 247, 0.15);
-  padding: 0 80px;
-}
-
-:root[data-theme='light'] .nav {
-  background: rgba(250, 248, 255, 0.92);
-  border-bottom-color: rgba(168, 85, 247, 0.12);
+  background: var(--bg-nav);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
 }
 
 .nav-inner {
@@ -293,6 +302,25 @@ pre {
   letter-spacing: 0.02em;
 }
 
+.nav-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-theme-toggle:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
 .nav-badge-dot {
   width: 5px;
   height: 5px;
@@ -341,8 +369,9 @@ pre {
 }
 
 .card-glass {
-  background: rgba(20, 24, 32, 0.7);
+  background: var(--bg-card);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -391,7 +420,6 @@ pre {
 .btn-secondary:hover:not(:disabled) {
   color: var(--text-primary);
   border-color: var(--border-hover);
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .btn-success {
@@ -1058,7 +1086,7 @@ pre {
 
 .modal {
   background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-hover);
   border-radius: var(--radius-xl);
   padding: 28px;
   width: 100%;
@@ -1366,6 +1394,13 @@ pre {
 
 :root[data-theme='light'] .gradient-text {
   background: linear-gradient(120deg, #6b21a8 10%, #9333ea 50%, #4f46e5 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+:root[data-theme='light'] .gradient-text {
+  background: linear-gradient(135deg, #0f172a, var(--accent), var(--purple));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

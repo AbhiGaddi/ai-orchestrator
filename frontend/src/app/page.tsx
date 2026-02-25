@@ -55,24 +55,42 @@ function PipelinePreview() {
         return () => clearInterval(t);
     }, []);
 
-    return (
-        <div style={{
-            background: 'rgba(12,10,26,0.7)',
-            border: '1px solid rgba(168,85,247,0.2)',
-            borderRadius: 20,
-            overflow: 'hidden',
-            backdropFilter: 'blur(24px)',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.1)',
-            width: '100%'
-        }}>
-            <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '16px 20px',
-                borderBottom: '1px solid rgba(168,85,247,0.12)',
-                background: 'rgba(255,255,255,0.03)',
-            }}>
-                {['#ef4444', '#f59e0b', '#10b981'].map(c => (
-                    <div key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: c }} />
+      {/* Pipeline phases */}
+      <section className="container" style={{ paddingBottom: 80 }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <h2 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Multi-Phase Pipeline</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>Each phase plugs in cleanly — no rewrites, just new agents.</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+          {phases.map(p => (
+            <div key={p.phase} className="card" style={{ borderColor: p.active ? `${p.color}40` : 'var(--border)', background: p.active ? `${p.color}08` : 'var(--bg-card)', position: 'relative', overflow: 'hidden' }}>
+              {p.active && (
+                <div style={{ position: 'absolute', top: 14, right: 14 }}>
+                  <span className="nav-badge" style={{ background: 'var(--green-dim)', borderColor: 'rgba(16,185,129,0.3)', color: 'var(--green)' }}>
+                    <span className="nav-badge-dot" />Live
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}20`, border: `1px solid ${p.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 800, color: p.color }}>
+                  {p.phase}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{p.label}</div>
+                  <div style={{ fontSize: '0.75rem', color: p.active ? p.color : 'var(--text-muted)', fontWeight: 600 }}>{p.subtitle}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {p.steps.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: `${p.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                      <s.icon size={13} color={p.color} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{s.label}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.desc}</div>
+                    </div>
+                  </div>
                 ))}
                 <span style={{ fontSize: '0.8rem', color: 'rgba(192,132,252,0.6)', fontFamily: 'var(--font-mono)', marginLeft: 10 }}>
                     flow — main agent line

@@ -223,10 +223,14 @@ export default function ProjectsPage() {
     };
 
     return (
-        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
-            <ToastContainer />
-            <div className="glow-blob glow-blob-1" />
-            <div className="glow-blob glow-blob-2" />
+        <div className="container py-12">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Projects</h1>
+                    <p className="text-muted-foreground">
+                        Manage your AI Orchestrator execution contexts and isolation boundaries.
+                    </p>
+                </div>
 
             <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: 44, paddingBottom: 80, maxWidth: 1600, padding: '0 80px' }}>
 
@@ -242,66 +246,153 @@ export default function ProjectsPage() {
                     borderRadius: 24,
                     border: '1px solid var(--border)',
                 }}>
-                    {/* Left: Branding & Info */}
-                    <div style={{ maxWidth: 700 }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.22)', marginBottom: 16 }}>
-                            <FolderOpen size={11} color="#c084fc" />
-                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c084fc', letterSpacing: '0.07em', textTransform: 'uppercase' }}>Workspace Engine</span>
-                        </div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 12, color: 'var(--text-primary)' }}>Flow Projects</h1>
-                        <p style={{ fontSize: '0.98rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 640 }}>
-                            Isolated execution contexts for your AI agents. Each Flow workspace encapsulates repositories, architectural guidelines, and security quality gates.
-                        </p>
-                    </div>
-
-                    {/* Right: Actions & Stats */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'flex-end', minWidth: 320 }}>
-                        <Link href="/projects/new" style={{ width: '100%' }}>
-                            <button
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    padding: '14px 28px', borderRadius: 14,
-                                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                                    border: 'none', color: '#fff',
-                                    fontSize: '1rem', fontWeight: 800,
-                                    cursor: 'pointer', fontFamily: 'inherit',
-                                    boxShadow: '0 8px 24px rgba(168,85,247,0.3)',
-                                    transition: 'all 0.2s',
-                                    width: '100%',
-                                    justifyContent: 'center'
-                                }}
-                                onMouseEnter={e => {
-                                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 12px 32px rgba(168,85,247,0.45)';
-                                }}
-                                onMouseLeave={e => {
-                                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(168,85,247,0.3)';
-                                }}
-                            >
-                                <Plus size={20} /> Initialize Project
-                            </button>
-                        </Link>
-
-                        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-                            {[
-                                { icon: FolderOpen, label: 'Projects', value: projects.length, color: '#a855f7' },
-                                { icon: GitBranch, label: 'Repos', value: projects.reduce((s, p) => s + (p.github_repos?.length ?? 0), 0), color: '#6366f1' },
-                                { icon: ShieldCheck, label: 'Sonar', value: projects.filter(p => p.sonar_project_key).length, color: '#f59e0b' },
-                            ].map(s => (
-                                <div key={s.label} style={{
-                                    flex: 1,
-                                    padding: '12px', borderRadius: 14,
-                                    background: 'rgba(0,0,0,0.2)',
-                                    border: '1px solid var(--border)',
-                                    textAlign: 'center',
-                                }}>
-                                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: s.color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.value}</div>
-                                    <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
+                    <DialogTrigger asChild>
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => resetForm()}>Create Project</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>{editingProjectId ? 'Edit Project' : 'Create New Project'}</DialogTitle>
+                            <DialogDescription>
+                                {editingProjectId
+                                    ? 'Update the boundaries and repositories for this project.'
+                                    : 'Define the boundaries and repositories for this project\'s AI execution context.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Name</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="e.g. Acme Web Client"
+                                    className="bg-muted/50 border-border"
+                                    value={projectForm.name}
+                                    onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="What does this project do?"
+                                    className="bg-muted/50 border-border resize-none h-20"
+                                    value={projectForm.description}
+                                    onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="repos">GitHub Repositories</Label>
+                                <Input
+                                    id="repos"
+                                    placeholder="owner/repo1, owner/repo2"
+                                    className="bg-muted/50 border-border"
+                                    value={projectForm.github_repos}
+                                    onChange={(e) => setProjectForm({ ...projectForm, github_repos: e.target.value })}
+                                />
+                                <p className="text-xs text-muted-foreground">Comma separated format (e.g. AbhiGaddi/ai-orchestrator)</p>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="guidelines">Coding Guidelines (Optional)</Label>
+                                <Textarea
+                                    id="guidelines"
+                                    placeholder="e.g. Use Python 3.10 and strict type checking."
+                                    className="bg-muted/50 border-border resize-none h-24"
+                                    value={projectForm.coding_guidelines}
+                                    onChange={(e) => setProjectForm({ ...projectForm, coding_guidelines: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="sonar_key">Sonar Project Key</Label>
+                                    <Input
+                                        id="sonar_key"
+                                        placeholder="project-key"
+                                        className="bg-muted/50 border-border"
+                                        value={projectForm.sonar_project_key}
+                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_project_key: e.target.value })}
+                                    />
                                 </div>
-                            ))}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="sonar_token">Sonar Token</Label>
+                                    <Input
+                                        id="sonar_token"
+                                        type="password"
+                                        placeholder="squ_..."
+                                        className="bg-muted/50 border-border"
+                                        value={projectForm.sonar_token}
+                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_token: e.target.value })}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <DialogFooter>
+                            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSubmit}>
+                                {editingProjectId ? 'Update Project' : 'Save Project'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-[200px] rounded-xl skeleton"></div>
+                    ))}
+                </div>
+            ) : projects.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-20 border border-dashed border-border rounded-xl bg-muted/30">
+                    <h3 className="text-xl font-bold mb-2 text-foreground">No projects yet</h3>
+                    <p className="text-muted-foreground mb-6 text-center max-w-sm">
+                        Projects act as isolated sandboxes for your agents. Create one to get started.
+                    </p>
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsDialogOpen(true)}>Create Project</Button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                        <Card key={project.id} className="border-border hover:border-border/80 transition-colors shadow-sm">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-xl text-foreground">{project.name}</CardTitle>
+                                <CardDescription className="line-clamp-2 min-h-[40px]">
+                                    {project.description || "No description provided."}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pb-4 border-b border-border mx-6 px-0 mb-4">
+                                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                                    <div className="flex justify-between">
+                                        <span>Repositories</span>
+                                        <span className="font-mono text-xs">{project.github_repos?.length || 0} configured</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Guidelines</span>
+                                        <span>{project.coding_guidelines ? "Yes" : "None"}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="pt-0 justify-between">
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="secondary"
+                                        className="text-xs h-8"
+                                        onClick={() => openEdit(project)}
+                                    >
+                                        <Edit2 size={12} className="mr-2" /> Edit
+                                    </Button>
+                                    <Link href={`/projects/${project.id}`}>
+                                        <Button variant="secondary" className="text-xs h-8">
+                                            <ExternalLink size={12} className="mr-2" /> Dashboard
+                                        </Button>
+                                    </Link>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Created {new Date(project.created_at).toLocaleDateString()}
+                                </p>
+                            </CardFooter>
+                        </Card>
+                    ))}
                 </div>
 
                 {/* ── Content ── */}
