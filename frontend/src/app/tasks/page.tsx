@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { RefreshCw, Plus } from 'lucide-react';
-import { Task } from '@/types';
-import { listTasks } from '@/lib/api';
+import { RefreshCw, Plus, Brain, FileText, Sparkles, GitBranch, Zap, Search } from 'lucide-react';
+import { Task, Project } from '@/types';
+import { listTasks, listProjects } from '@/lib/api';
 import TaskCard from '@/components/tasks/TaskCard';
 import ToastContainer, { toast } from '@/components/ui/Toast';
 import Link from 'next/link';
@@ -22,14 +22,26 @@ function matchesFilter(t: Task, filter: FilterKey): boolean {
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState<FilterKey>('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
 
     async function loadTasks(silent = false) {
-        if (!silent) setLoading(true); else setRefreshing(true);
+        if (silent) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+
         try {
-            setTasks(await listTasks());
+            const [tasksData, projectsData] = await Promise.all([
+                listTasks(),
+                listProjects()
+            ]);
+            setTasks(tasksData);
+            setProjects(projectsData);
         } catch (err: unknown) {
             toast('error', err instanceof Error ? err.message : 'Failed to load tasks');
         } finally {
@@ -64,7 +76,13 @@ export default function TasksPage() {
         { label: 'Failed', key: 'FAILED', count: counts.failed, color: 'var(--red)' },
     ];
 
-    const filtered = tasks.filter(t => matchesFilter(t, filter));
+    const filtered = tasks
+        .filter(t => matchesFilter(t, filter))
+        .filter(t => {
+            if (!searchQuery.trim()) return true;
+            const q = searchQuery.toLowerCase();
+            return t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q);
+        });
     const activeTab = tabs.find(t => t.key === filter);
 
     return (
@@ -74,59 +92,145 @@ export default function TasksPage() {
             <div className="glow-blob glow-blob-2" />
             <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px' }}>
                 {/* ── Page header ── */}
-                <div className="page-header">
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ padding: '30px 0 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                         <div>
-                            <h1 style={{ fontSize: '1.7rem' }}>Tasks</h1>
-                            <p className="page-subtitle" style={{ marginTop: 4 }}>
-                                {counts.total} task{counts.total !== 1 ? 's' : ''} total
-                                {counts.pending > 0 && ` · ${counts.pending} awaiting review`}
-                                {counts.failed > 0 && ` · ${counts.failed} failed`}
-                            </p>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', marginBottom: 12 }}>
+                                <Brain size={12} color="var(--accent)" />
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Workflow Management</span>
+                            </div>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Tasks</h1>
                         </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => loadTasks(true)} disabled={refreshing}>
-                                <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button className="btn btn-secondary" onClick={() => loadTasks(true)} disabled={refreshing} style={{ borderRadius: 12 }}>
+                                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
                                 Refresh
                             </button>
-                            <Link href="/extract" className="btn btn-primary btn-sm">
-                                <Plus size={13} /> New Extraction
+                            <Link href="/extract" className="btn btn-primary" style={{ borderRadius: 12, boxShadow: '0 8px 20px rgba(168,85,247,0.3)' }}>
+                                <Plus size={16} /> New Extraction
                             </Link>
                         </div>
                     </div>
-                </div>
 
-                {/* ── Unified tab filter ── */}
-                <div className="tab-bar">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.key}
-                            className={`tab-item ${filter === tab.key ? 'active' : ''}`}
-                            onClick={() => setFilter(tab.key)}
-                            style={filter === tab.key && tab.color ? { borderBottomColor: tab.color, color: tab.color } : {}}
-                        >
-                            {tab.label}
-                            <span
-                                className="tab-count"
-                                style={filter === tab.key && tab.color ? { background: `${tab.color}18`, color: tab.color } : {}}
-                            >
-                                {tab.count}
-                            </span>
-                        </button>
-                    ))}
+                    {/* Quick Stats Dashboard */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(4, 1fr)',
+                        gap: 20,
+                        marginBottom: 32
+                    }}>
+                        {[
+                            { label: 'Total Syncs', value: counts.total, icon: FileText, color: '#6366f1' },
+                            { label: 'Awaiting Action', value: counts.pending, icon: Sparkles, color: '#a855f7' },
+                            { label: 'Integration Ready', value: counts.readyTicket, icon: GitBranch, color: '#10b981' },
+                            { label: 'Active Pipeline', value: counts.readyCode + counts.readyReview, icon: Zap, color: '#f59e0b' },
+                        ].map((stat) => (
+                            <div key={stat.label} style={{
+                                background: 'var(--bg-card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 20,
+                                padding: '16px 20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 16,
+                                boxShadow: 'var(--shadow-card)'
+                            }}>
+                                <div style={{
+                                    width: 44, height: 44, borderRadius: 12,
+                                    background: `${stat.color}15`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    border: `1px solid ${stat.color}30`
+                                }}>
+                                    <stat.icon size={20} color={stat.color} />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{stat.label}</div>
+                                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-primary)' }}>{stat.value}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Search & Filter Bar */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 16,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 16,
+                        padding: '6px 6px 6px 16px',
+                        marginBottom: 24,
+                        backdropFilter: 'blur(10px)'
+                    }}>
+                        <Search size={18} color="var(--text-muted)" />
+                        <input
+                            placeholder="Search tasks by title or description..."
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: 'var(--text-primary)',
+                                flex: 1,
+                                fontSize: '0.9rem',
+                                padding: '8px 0'
+                            }}
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                        <div style={{ height: 24, width: 1, background: 'var(--border)' }} />
+                        <div style={{ display: 'flex', gap: 4, padding: '0 8px' }}>
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => setFilter(tab.key)}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: 10,
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s',
+                                        background: filter === tab.key ? `${tab.color || 'var(--accent)'}15` : 'transparent',
+                                        color: filter === tab.key ? (tab.color || 'var(--accent)') : 'var(--text-secondary)',
+                                        border: '1px solid',
+                                        borderColor: filter === tab.key ? `${tab.color || 'var(--accent)'}40` : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6
+                                    }}
+                                >
+                                    {tab.label}
+                                    {tab.count > 0 && (
+                                        <span style={{
+                                            padding: '1px 6px',
+                                            borderRadius: 6,
+                                            background: filter === tab.key ? `${tab.color || 'var(--accent)'}25` : 'rgba(255,255,255,0.05)',
+                                            fontSize: '0.65rem'
+                                        }}>
+                                            {tab.count}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* ── Task list ── */}
                 {loading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-lg)' }} />
+                            <div key={`loading-${i}`} className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-lg)' }} />
                         ))}
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">
-                            {filter === 'FAILED' ? '⚠️' : filter === 'ALL' ? '📋' : '✓'}
+                            {(() => {
+                                if (filter === 'FAILED') return '⚠️';
+                                if (filter === 'ALL') return '📋';
+                                return '✓';
+                            })()}
                         </div>
                         <div className="empty-title">
                             {filter === 'ALL' ? 'No tasks yet' : `No ${activeTab?.label.toLowerCase()} tasks`}
@@ -134,10 +238,10 @@ export default function TasksPage() {
                         <p className="empty-sub">
                             {filter === 'ALL'
                                 ? 'Go to Extract to paste a discussion and let the Flow agents create tasks for you.'
-                                : 'Switch to a different filter to see other tasks.'}
+                                : 'No items match your current filter and search.'}
                         </p>
                         {filter === 'ALL' && (
-                            <Link href="/extract" className="btn btn-primary" style={{ marginTop: 4 }}>
+                            <Link href="/extract" className="btn btn-primary" style={{ marginTop: 12, borderRadius: 12 }}>
                                 <Plus size={14} /> Extract Tasks
                             </Link>
                         )}
@@ -145,7 +249,12 @@ export default function TasksPage() {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 48 }}>
                         {filtered.map(t => (
-                            <TaskCard key={t.id} task={t} onChange={updateTask} />
+                            <TaskCard
+                                key={t.id}
+                                task={t}
+                                onChange={updateTask}
+                                projectName={projects.find(p => p.id === t.project_id)?.name}
+                            />
                         ))}
                     </div>
                 )}

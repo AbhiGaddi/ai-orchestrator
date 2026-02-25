@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Pencil, Check, X, Play, Github, Mail, Calendar, AlertCircle } from 'lucide-react';
+import { Pencil, Check, X, Play, Github, Mail, Calendar, AlertCircle, Zap, RefreshCw, Folder } from 'lucide-react';
 import { Task } from '@/types';
 import { approveTask, rejectTask, executeTask, generateCodeTask } from '@/lib/api';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badges';
@@ -12,9 +12,10 @@ import Link from 'next/link';
 interface TaskCardProps {
     task: Task;
     onChange: (t: Task) => void;
+    projectName?: string;
 }
 
-export default function TaskCard({ task, onChange }: TaskCardProps) {
+export default function TaskCard({ task, onChange, projectName }: TaskCardProps) {
     const [editing, setEditing] = useState(false);
     const [loading, setLoading] = useState<string | null>(null);
 
@@ -38,143 +39,183 @@ export default function TaskCard({ task, onChange }: TaskCardProps) {
 
     return (
         <>
-            <div className="task-card" style={{ borderLeft: isCompleted ? '3px solid var(--green)' : isRejected ? '3px solid var(--red)' : '3px solid transparent' }}>
-                <div className="task-card-header">
-                    <div style={{ flex: 1 }}>
-                        <Link href={`/tasks/${task.id}`} className="task-card-title" style={{ marginBottom: 8, display: 'inline-block', textDecoration: 'none', color: 'inherit' }}>
-                            {task.title}
-                        </Link>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="task-card" style={{
+                padding: '24px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 24,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: 'var(--shadow-card)',
+                marginBottom: 16
+            }}>
+                {/* Status Accent Stripe */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: 4,
+                    background: isCompleted ? 'var(--green)' : isRejected ? 'var(--red)' : task.status === 'FAILED' ? 'var(--red)' : 'var(--accent)'
+                }} />
 
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <Link href={`/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+                                    {task.title}
+                                </h3>
+                            </Link>
                             <StatusBadge status={task.status} />
                             <PriorityBadge priority={task.priority} />
-                            {task.deadline && (
-                                <span className="badge" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                                    <Calendar size={10} /> {task.deadline}
+                            {projectName && (
+                                <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    background: 'rgba(59,130,246,0.1)', color: 'var(--blue)',
+                                    padding: '2px 8px', borderRadius: 6, fontSize: '0.65rem', fontWeight: 800,
+                                    border: '1px solid rgba(59,130,246,0.2)'
+                                }}>
+                                    <Folder size={10} /> {projectName.toUpperCase()}
                                 </span>
                             )}
                         </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <Calendar size={12} />
+                                {new Date(task.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </div>
+                            {task.deadline && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--orange)' }}>
+                                    <Zap size={12} />
+                                    Due {task.deadline}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                            className="btn btn-ghost"
+                            onClick={() => setEditing(true)}
+                            style={{ width: 36, height: 36, padding: 0, borderRadius: 10, background: 'rgba(255,255,255,0.03)' }}
+                        >
+                            <Pencil size={14} />
+                        </button>
+                        {!task.approved && !isRejected && (
+                            <>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => do_('reject', () => rejectTask(task.id))}
+                                    disabled={!!loading}
+                                    style={{ padding: '0 16px', height: 36, borderRadius: 10, fontSize: '0.8rem' }}
+                                >
+                                    {loading === 'reject' ? <span className="spinner" /> : <X size={14} />} Reject
+                                </button>
+                                <button
+                                    className="btn btn-success"
+                                    onClick={() => do_('approve', () => approveTask(task.id))}
+                                    disabled={!!loading}
+                                    style={{ padding: '0 16px', height: 36, borderRadius: 10, fontSize: '0.8rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                                >
+                                    {loading === 'approve' ? <span className="spinner" /> : <Check size={14} />} Approve
+                                </button>
+                            </>
+                        )}
+                        {canExecute && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => do_('execute', () => executeTask(task.id))}
+                                disabled={!!loading}
+                                style={{ padding: '0 20px', height: 36, borderRadius: 10, fontSize: '0.8rem', background: 'linear-gradient(135deg, #a855f7, #6366f1)' }}
+                            >
+                                {loading === 'execute' ? <span className="spinner" /> : <Play size={14} />} Execute Setup
+                            </button>
+                        )}
+                        {canGenerateCode && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => do_('generate', () => generateCodeTask(task.id))}
+                                disabled={!!loading}
+                                style={{ padding: '0 20px', height: 36, borderRadius: 10, fontSize: '0.8rem', background: 'linear-gradient(135deg, #a855f7, #6366f1)' }}
+                            >
+                                {loading === 'generate' ? <span className="spinner" /> : <Play size={14} />} Generate Code
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                <div className="task-card-body">
-                    {task.description && (
-                        <div>
-                            <div className="task-card-section-label">Description</div>
-                            <div className="task-card-section">{task.description}</div>
-                        </div>
-                    )}
-                    {task.acceptance_criteria && (
-                        <div>
-                            <div className="task-card-section-label">Acceptance Criteria</div>
-                            <div className="task-card-section">{task.acceptance_criteria}</div>
-                        </div>
-                    )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 16 }}>
+                    <div style={{ background: 'rgba(0,0,0,0.12)', padding: '16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Description</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{task.description || 'No description provided.'}</div>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.12)', padding: '16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Acceptance Criteria</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{task.acceptance_criteria || 'No criteria defined.'}</div>
+                    </div>
                 </div>
 
-                {/* GitHub + Email status */}
-                {(task.github_issue_url || task.email_sent || task.github_pr_url) && (
-                    <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-                        {task.github_issue_url && (
-                            <a href={task.github_issue_url} target="_blank" rel="noreferrer"
-                                className="badge badge-completed"
-                                style={{ gap: 6, textDecoration: 'none' }}>
-                                <Github size={11} /> Issue #{task.github_issue_id}
-                            </a>
-                        )}
-                        {task.github_pr_url && (
-                            <a href={task.github_pr_url} target="_blank" rel="noreferrer"
-                                className="badge badge-primary"
-                                style={{ gap: 6, textDecoration: 'none', background: 'var(--blue-dim)', color: 'var(--blue)' }}>
-                                <Github size={11} /> PR #{task.github_pr_id}
-                            </a>
-                        )}
-                        {task.email_sent && (
-                            <span className="badge badge-completed" style={{ gap: 6 }}>
-                                <Mail size={11} /> Email Sent
-                            </span>
+                {/* Footer Artifacts */}
+                {(task.github_issue_url || task.email_sent || task.github_pr_url || task.status === 'FAILED') && (
+                    <div style={{
+                        marginTop: 4,
+                        paddingTop: 16,
+                        borderTop: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Artifacts:</div>
+                            {task.github_issue_url && (
+                                <a href={task.github_issue_url} target="_blank" rel="noreferrer"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px',
+                                        borderRadius: 8, background: 'rgba(16,185,129,0.1)', color: '#10b981',
+                                        fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none'
+                                    }}>
+                                    <Github size={12} /> Issue #{task.github_issue_id}
+                                </a>
+                            )}
+                            {task.github_pr_url && (
+                                <a href={task.github_pr_url} target="_blank" rel="noreferrer"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px',
+                                        borderRadius: 8, background: 'rgba(99,102,241,0.1)', color: '#6366f1',
+                                        fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none'
+                                    }}>
+                                    <Github size={12} /> PR #{task.github_pr_id}
+                                </a>
+                            )}
+                            {task.email_sent && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px',
+                                    borderRadius: 8, background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)',
+                                    fontSize: '0.75rem', fontWeight: 700
+                                }}>
+                                    <Mail size={12} /> Stakeholders Notified
+                                </div>
+                            )}
+                        </div>
+
+                        {task.status === 'FAILED' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--red)', fontSize: '0.75rem', fontWeight: 700 }}>
+                                <AlertCircle size={14} /> Execution failed
+                                <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => do_('execute', () => executeTask(task.id))}
+                                    disabled={!!loading}
+                                    style={{ padding: '0 12px', height: 28, borderRadius: 6 }}
+                                >
+                                    {loading === 'execute' ? <span className="spinner" /> : <RefreshCw size={12} />} Retry
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
-
-                <div className="task-card-footer">
-                    <div className="task-card-meta">
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {new Date(task.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                    </div>
-
-                    {!isCompleted && !isRejected && (
-                        <div className="task-card-actions">
-                            {/* Edit */}
-                            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)} title="Edit">
-                                <Pencil size={13} />
-                            </button>
-
-                            {/* Reject */}
-                            {!task.approved && (
-                                <button
-                                    className="btn btn-danger btn-sm"
-                                    onClick={() => do_('reject', () => rejectTask(task.id))}
-                                    disabled={!!loading}
-                                >
-                                    {loading === 'reject' ? <span className="spinner" /> : <X size={13} />}
-                                    Reject
-                                </button>
-                            )}
-
-                            {/* Approve */}
-                            {!task.approved && (
-                                <button
-                                    className="btn btn-success btn-sm"
-                                    onClick={() => do_('approve', () => approveTask(task.id))}
-                                    disabled={!!loading}
-                                >
-                                    {loading === 'approve' ? <span className="spinner" /> : <Check size={13} />}
-                                    Approve
-                                </button>
-                            )}
-
-                            {/* Execute Setup */}
-                            {canExecute && (
-                                <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={() => do_('execute', () => executeTask(task.id))}
-                                    disabled={!!loading}
-                                    title="Run TicketAgent & EmailAgent"
-                                >
-                                    {loading === 'execute' ? <span className="spinner" /> : <Play size={13} />}
-                                    Execute Setup
-                                </button>
-                            )}
-
-                        </div>
-                    )}
-
-                    {/* Generate Code (Phase 2) - Shows even when COMPLETED */}
-                    {canGenerateCode && (
-                        <div className="task-card-actions">
-                            <button
-                                className="btn btn-sm"
-                                style={{ background: 'linear-gradient(135deg, var(--accent), var(--blue))', color: '#fff', border: 'none' }}
-                                onClick={() => do_('generate', () => generateCodeTask(task.id))}
-                                disabled={!!loading}
-                            >
-                                {loading === 'generate' ? <span className="spinner" /> : <Play size={13} />}
-                                Generate Code
-                            </button>
-                        </div>
-                    )}
-
-                    {task.status === 'FAILED' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--red)', fontSize: '0.8rem' }}>
-                            <AlertCircle size={14} /> Execution failed
-                            <button className="btn btn-primary btn-sm" onClick={() => do_('execute', () => executeTask(task.id))} disabled={!!loading}>
-                                {loading === 'execute' ? <span className="spinner" /> : <Play size={13} />} Retry
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
 
             {editing && (

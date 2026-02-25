@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Clock, Play, Github, Mail, AlertCircle, CheckSquare, Terminal } from 'lucide-react';
-import { Task, AgentRun } from '@/types';
-import { getTask, listAgentRuns, executeTask, generateCodeTask, reviewPRTask, updateTask } from '@/lib/api';
+import { ArrowLeft, CheckCircle2, Clock, Play, Github, Mail, AlertCircle, CheckSquare, Terminal, Tag, Search, ThumbsUp, Cpu, Folder, GitMerge } from 'lucide-react';
+import { Task, AgentRun, Project } from '@/types';
+import { getTask, listAgentRuns, executeTask, generateCodeTask, reviewPRTask, updateTask, getProject } from '@/lib/api';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badges';
 import ToastContainer, { toast } from '@/components/ui/Toast';
 
@@ -22,6 +22,7 @@ export default function TaskDetailPage() {
     const [genForm, setGenForm] = useState({ baseBranch: '', newBranch: '' });
     const [isEditingRepo, setIsEditingRepo] = useState(false);
     const [editRepoValue, setEditRepoValue] = useState("");
+    const [project, setProject] = useState<Project | null>(null);
 
     useEffect(() => {
         if (!taskId) return;
@@ -39,6 +40,11 @@ export default function TaskDetailPage() {
             ]);
             setTask(t);
             setRuns(r);
+
+            if (t.project_id) {
+                const proj = await getProject(t.project_id);
+                setProject(proj);
+            }
         } catch (err: any) {
             toast('error', err.message || 'Failed to load task details');
         } finally {
@@ -88,23 +94,33 @@ export default function TaskDetailPage() {
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingTop: 20 }}>
-                <div style={{ marginBottom: 20 }}>
-                    <Link href="/tasks" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
-                        <ArrowLeft size={16} /> Back to Tasks
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingTop: 10 }}>
+                <div style={{ marginBottom: 12 }}>
+                    <Link href="/tasks" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>
+                        <ArrowLeft size={14} /> Back to Tasks
                     </Link>
                 </div>
 
                 {/* Header */}
-                <div className="page-header" style={{ marginBottom: 30 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                         <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 4, alignItems: 'center' }}>
                                 <StatusBadge status={task.status} />
                                 <PriorityBadge priority={task.priority} />
+                                {project && (
+                                    <span style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                                        background: 'rgba(59,130,246,0.1)', color: 'var(--blue)',
+                                        padding: '3px 10px', borderRadius: 8, fontSize: '0.65rem', fontWeight: 800,
+                                        border: '1px solid rgba(59,130,246,0.2)'
+                                    }}>
+                                        <Folder size={11} /> {project.name.toUpperCase()}
+                                    </span>
+                                )}
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 600 }}>ID: {task.id}</span>
                             </div>
-                            <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>{task.title}</h1>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Task ID: {task.id}</p>
+                            <h1 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 900, letterSpacing: '-0.02em' }}>{task.title}</h1>
                         </div>
 
                         <div style={{ display: 'flex', gap: 10 }}>
@@ -131,14 +147,14 @@ export default function TaskDetailPage() {
                 </div>
 
                 {/* Progress Tracker */}
-                <div className="card" style={{ marginBottom: 30, padding: 24 }}>
+                <div className="card" style={{ marginBottom: 16, padding: '20px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: 16, left: 40, right: 40, height: 2, background: 'var(--border)', zIndex: 0 }} />
+                        <div style={{ position: 'absolute', top: 38, left: 40, right: 40, height: 2, background: 'var(--border)', zIndex: 0 }} />
 
-                        <StepItem title="Approved" done={step1Done} />
-                        <StepItem title="GitHub Ticket" done={step2Done} active={step1Done && !step2Done} link={task.github_issue_url} />
-                        <StepItem title="Code Generated" done={step3Done} active={step2Done && !step3Done} link={task.github_pr_url} />
-                        <StepItem title="PR Reviewed" done={step4Done} active={step3Done && !step4Done} />
+                        <StepItem title="Approved" done={step1Done} icon={<ThumbsUp size={12} />} />
+                        <StepItem title="GitHub Ticket" done={step2Done} active={step1Done && !step2Done} link={task.github_issue_url} icon={<Tag size={12} />} />
+                        <StepItem title="Code Generated" done={step3Done} active={step2Done && !step3Done} link={task.github_pr_url} icon={<Cpu size={12} />} />
+                        <StepItem title="PR Reviewed" done={step4Done} active={step3Done && !step4Done} icon={<Search size={12} />} />
                     </div>
                 </div>
 
@@ -169,13 +185,13 @@ export default function TaskDetailPage() {
                             </div>
                         )}
 
-                        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+                        <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, height: 'calc(100vh - 380px)', minHeight: 400 }}>
+                            <div style={{ display: 'flex', padding: '0 10px', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
                                 <TabBtn active={activeTab === 'details'} onClick={() => setActiveTab('details')}>Details & Criteria</TabBtn>
                                 <TabBtn active={activeTab === 'logs'} onClick={() => setActiveTab('logs')}>Agent Activity ({runs.length})</TabBtn>
                             </div>
 
-                            <div style={{ padding: 24 }}>
+                            <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
                                 {activeTab === 'details' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                                         <div>
@@ -274,8 +290,8 @@ export default function TaskDetailPage() {
                     </div>
 
                     {/* Right Col: Timeline */}
-                    <div className="card">
-                        <h3 style={{ marginBottom: 20, fontSize: '1.1rem' }}>Execution Timeline</h3>
+                    <div className="card" style={{ height: 'calc(100vh - 380px)', minHeight: 400, overflowY: 'auto' }}>
+                        <h3 style={{ marginBottom: 16, fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Execution Timeline</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <TimelineEvent title="Task Created" time={task.created_at} icon={<CheckSquare size={14} />} color="var(--text-muted)" />
                             {task.approved && <TimelineEvent title="Task Approved" time={task.updated_at} icon={<CheckCircle2 size={14} />} color="var(--blue)" />}
@@ -337,20 +353,37 @@ export default function TaskDetailPage() {
     );
 }
 
-function StepItem({ title, done, active, link }: { title: string, done: boolean, active?: boolean, link?: string }) {
+function StepItem({ title, done, active, link, icon }: { title: string, done: boolean, active?: boolean, link?: string, icon?: React.ReactNode }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, zIndex: 1, flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 1, flex: 1 }}>
+            {/* Title Above */}
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: done ? 'var(--green)' : active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                {title}
+            </div>
+
+            {/* Icon Center */}
             <div style={{
-                width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: done ? 'var(--green)' : active ? 'var(--blue)' : 'var(--bg-card-hover)',
                 color: done || active ? '#fff' : 'var(--text-muted)',
-                boxShadow: active ? '0 0 0 4px var(--blue-dim)' : 'none'
+                boxShadow: active ? '0 0 0 4px var(--blue-dim)' : 'none',
+                border: !done && !active ? '1px solid var(--border)' : 'none',
+                transition: 'all 0.3s ease'
             }}>
-                {done ? <CheckCircle2 size={18} /> : active ? <Clock size={16} /> : <div style={{ width: 8, height: 8, borderRadius: 4, background: 'currentColor' }} />}
+                {done ? <CheckCircle2 size={16} /> : active ? <Clock size={16} /> : icon}
             </div>
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: done ? 'var(--green)' : active ? '#fff' : 'var(--text-muted)' }}>{title}</div>
-                {link && done && <a href={link} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--blue)', textDecoration: 'none' }}>View Link</a>}
+
+            {/* Link/Status Below */}
+            <div style={{ minHeight: 14 }}>
+                {link && done ? (
+                    <a href={link} target="_blank" rel="noreferrer" style={{ fontSize: '0.65rem', color: 'var(--blue)', textDecoration: 'none', fontWeight: 600 }}>
+                        View Details
+                    </a>
+                ) : active ? (
+                    <span style={{ fontSize: '0.65rem', color: 'var(--blue)', fontWeight: 600 }}>Active</span>
+                ) : (
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{done ? 'Complete' : 'Pending'}</span>
+                )}
             </div>
         </div>
     );
@@ -359,10 +392,19 @@ function StepItem({ title, done, active, link }: { title: string, done: boolean,
 function TabBtn({ children, active, onClick }: { children: React.ReactNode, active: boolean, onClick: () => void }) {
     return (
         <button onClick={onClick} style={{
-            flex: 1, padding: '14px 20px', background: 'transparent', border: 'none',
-            borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
-            color: active ? '#fff' : 'var(--text-secondary)', fontWeight: active ? 600 : 500,
-            cursor: 'pointer', fontFamily: 'inherit', transition: 'var(--transition)'
+            padding: '14px 24px',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: active ? '3px solid var(--accent)' : '3px solid transparent',
+            color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+            fontWeight: 800,
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.2s',
+            opacity: active ? 1 : 0.6
         }}>
             {children}
         </button>
