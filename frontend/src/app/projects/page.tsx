@@ -222,15 +222,55 @@ export default function ProjectsPage() {
         }
     };
 
-    return (
-        <div className="container py-12">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Projects</h1>
-                    <p className="text-muted-foreground">
-                        Manage your AI Orchestrator execution contexts and isolation boundaries.
-                    </p>
+    // Determine the content based on state
+    let content;
+    if (isLoading) {
+        content = (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+                {[1, 2, 3].map(i => (
+                    <div key={i} style={{ height: 260, borderRadius: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', animation: 'pulse 1.5s infinite' }} />
+                ))}
+            </div>
+        );
+    } else if (projects.length === 0) {
+        content = (
+            <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                padding: '100px 40px',
+                border: '1.5px dashed var(--border)', borderRadius: 24,
+                background: 'var(--bg-surface)',
+            }}>
+                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                    <FolderOpen size={30} color="#a855f7" />
                 </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 10, color: 'var(--text-primary)' }}>No active projects</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', textAlign: 'center', maxWidth: 400, marginBottom: 32, lineHeight: 1.7 }}>
+                    Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks.
+                </p>
+                <Link href="/projects/new">
+                    <button
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(168,85,247,0.35)' }}
+                    >
+                        <Plus size={20} /> Initialize Workspace
+                    </button>
+                </Link>
+            </div>
+        );
+    } else {
+        content = (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+                {projects.map((project, i) => (
+                    <ProjectCard key={project.id} project={project} index={i} />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
+            <ToastContainer />
+            <div className="glow-blob glow-blob-1" />
+            <div className="glow-blob glow-blob-2" />
 
             <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: 44, paddingBottom: 80, maxWidth: 1600, padding: '0 80px' }}>
 
@@ -241,196 +281,54 @@ export default function ProjectsPage() {
                     gap: 40,
                     alignItems: 'center',
                     marginBottom: 48,
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
+                    background: 'var(--bg-card)',
                     padding: '32px 40px',
                     borderRadius: 24,
                     border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-card)',
                 }}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => resetForm()}>Create Project</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader>
-                            <DialogTitle>{editingProjectId ? 'Edit Project' : 'Create New Project'}</DialogTitle>
-                            <DialogDescription>
-                                {editingProjectId
-                                    ? 'Update the boundaries and repositories for this project.'
-                                    : 'Define the boundaries and repositories for this project\'s AI execution context.'}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="e.g. Acme Web Client"
-                                    className="bg-muted/50 border-border"
-                                    value={projectForm.name}
-                                    onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    placeholder="What does this project do?"
-                                    className="bg-muted/50 border-border resize-none h-20"
-                                    value={projectForm.description}
-                                    onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="repos">GitHub Repositories</Label>
-                                <Input
-                                    id="repos"
-                                    placeholder="owner/repo1, owner/repo2"
-                                    className="bg-muted/50 border-border"
-                                    value={projectForm.github_repos}
-                                    onChange={(e) => setProjectForm({ ...projectForm, github_repos: e.target.value })}
-                                />
-                                <p className="text-xs text-muted-foreground">Comma separated format (e.g. AbhiGaddi/ai-orchestrator)</p>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="guidelines">Coding Guidelines (Optional)</Label>
-                                <Textarea
-                                    id="guidelines"
-                                    placeholder="e.g. Use Python 3.10 and strict type checking."
-                                    className="bg-muted/50 border-border resize-none h-24"
-                                    value={projectForm.coding_guidelines}
-                                    onChange={(e) => setProjectForm({ ...projectForm, coding_guidelines: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="sonar_key">Sonar Project Key</Label>
-                                    <Input
-                                        id="sonar_key"
-                                        placeholder="project-key"
-                                        className="bg-muted/50 border-border"
-                                        value={projectForm.sonar_project_key}
-                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_project_key: e.target.value })}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="sonar_token">Sonar Token</Label>
-                                    <Input
-                                        id="sonar_token"
-                                        type="password"
-                                        placeholder="squ_..."
-                                        className="bg-muted/50 border-border"
-                                        value={projectForm.sonar_token}
-                                        onChange={(e) => setProjectForm({ ...projectForm, sonar_token: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+                    <div>
+                        <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            padding: '5px 14px',
+                            background: 'rgba(168,85,247,0.08)',
+                            border: '1px solid rgba(168,85,247,0.2)',
+                            borderRadius: 999,
+                            marginBottom: 16,
+                        }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', animation: 'pulse 2s infinite' }} />
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase' }}>
+                                Execution Boundaries
+                            </span>
                         </div>
-                        <DialogFooter>
-                            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button onClick={handleSubmit}>
-                                {editingProjectId ? 'Update Project' : 'Save Project'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: 10 }}>
+                            Project Grid
+                        </h1>
+                        <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: 500, lineHeight: 1.6 }}>
+                            Deploy isolated orchestrator instances. Each project acts as a secure boundary for its mapped repositories.
+                        </p>
+                    </div>
 
-            {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-[200px] rounded-xl skeleton"></div>
-                    ))}
-                </div>
-            ) : projects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-20 border border-dashed border-border rounded-xl bg-muted/30">
-                    <h3 className="text-xl font-bold mb-2 text-foreground">No projects yet</h3>
-                    <p className="text-muted-foreground mb-6 text-center max-w-sm">
-                        Projects act as isolated sandboxes for your agents. Create one to get started.
-                    </p>
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsDialogOpen(true)}>Create Project</Button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.map((project) => (
-                        <Card key={project.id} className="border-border hover:border-border/80 transition-colors shadow-sm">
-                            <CardHeader className="pb-4">
-                                <CardTitle className="text-xl text-foreground">{project.name}</CardTitle>
-                                <CardDescription className="line-clamp-2 min-h-[40px]">
-                                    {project.description || "No description provided."}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pb-4 border-b border-border mx-6 px-0 mb-4">
-                                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                                    <div className="flex justify-between">
-                                        <span>Repositories</span>
-                                        <span className="font-mono text-xs">{project.github_repos?.length || 0} configured</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Guidelines</span>
-                                        <span>{project.coding_guidelines ? "Yes" : "None"}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter className="pt-0 justify-between">
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        className="text-xs h-8"
-                                        onClick={() => openEdit(project)}
-                                    >
-                                        <Edit2 size={12} className="mr-2" /> Edit
-                                    </Button>
-                                    <Link href={`/projects/${project.id}`}>
-                                        <Button variant="secondary" className="text-xs h-8">
-                                            <ExternalLink size={12} className="mr-2" /> Dashboard
-                                        </Button>
-                                    </Link>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Created {new Date(project.created_at).toLocaleDateString()}
-                                </p>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                    <Link href="/projects/new">
+                        <button className="btn pr-btn" style={{
+                            height: 50, padding: '0 32px',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            borderRadius: 14,
+                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                            border: 'none', color: '#fff',
+                            fontSize: '0.95rem', fontWeight: 800,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            boxShadow: '0 8px 24px rgba(168,85,247,0.25)',
+                            transition: 'transform 0.2s',
+                            letterSpacing: '0.02em',
+                        }}>
+                            <Plus size={18} /> INITIALIZE PROJECT
+                        </button>
+                    </Link>
                 </div>
 
                 {/* ── Content ── */}
-                {isLoading ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-                        {[1, 2, 3].map(i => (
-                            <div key={i} style={{ height: 260, borderRadius: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', animation: 'pulse 1.5s infinite' }} />
-                        ))}
-                    </div>
-                ) : projects.length === 0 ? (
-                    <div style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        padding: '100px 40px',
-                        border: '1.5px dashed rgba(168,85,247,0.2)', borderRadius: 24,
-                        background: 'rgba(168,85,247,0.03)',
-                    }}>
-                        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                            <FolderOpen size={30} color="#a855f7" />
-                        </div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 10, color: 'var(--text-primary)' }}>No active projects</h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', textAlign: 'center', maxWidth: 400, marginBottom: 32, lineHeight: 1.7 }}>
-                            Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks.
-                        </p>
-                        <Link href="/projects/new">
-                            <button
-                                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(168,85,247,0.35)' }}
-                            >
-                                <Plus size={20} /> Initialize Workspace
-                            </button>
-                        </Link>
-                    </div>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
-                        {projects.map((project, i) => (
-                            <ProjectCard key={project.id} project={project} index={i} />
-                        ))}
-                    </div>
-                )}
+                {content}
             </div>
         </div>
     );

@@ -48,6 +48,88 @@ const previewStages = [
     { icon: GitPullRequest, label: 'PR pending', status: 'pending', time: '—' },
 ];
 
+const phases = [
+    {
+        phase: '01',
+        active: true,
+        color: '#a855f7',
+        label: 'Discovery & Plan',
+        subtitle: 'Flow extracts issues autonomously',
+        steps: [
+            { icon: MessageSquare, label: 'Discussion', desc: 'Parses contextual logic' },
+            { icon: Github, label: 'Ticket', desc: 'Outputs atomic issues' }
+        ]
+    },
+    {
+        phase: '02',
+        active: true,
+        color: '#3b82f6',
+        label: 'Code Generation',
+        subtitle: 'Flow generates logic safely',
+        steps: [
+            { icon: Code, label: 'Implementation', desc: 'Writes targeted TSX' },
+            { icon: GitPullRequest, label: 'PR Creation', desc: 'Ships logic to branch' }
+        ]
+    },
+    {
+        phase: '03',
+        active: false,
+        color: '#10b981',
+        label: 'Test & Deploy',
+        subtitle: 'Flow executes quality gates',
+        steps: [
+            { icon: ShieldCheck, label: 'Validation', desc: 'SonarQube threshold' },
+            { icon: Zap, label: 'Live Server', desc: 'Production deployment' }
+        ]
+    }
+];
+
+function PipelinePhases() {
+    return (
+        <section style={{ paddingBottom: 100, paddingTop: 40, maxWidth: 1600, padding: '0 80px', margin: '0 auto', width: '100%' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Multi-Phase Pipeline</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>Each phase plugs in cleanly — no rewrites, just new agents.</p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+                {phases.map(p => (
+                    <div key={p.phase} className="card" style={{ borderColor: p.active ? `${p.color}40` : 'var(--border)', background: p.active ? `${p.color}08` : 'var(--bg-card)', position: 'relative', overflow: 'hidden' }}>
+                        {p.active && (
+                            <div style={{ position: 'absolute', top: 14, right: 14 }}>
+                                <span className="nav-badge" style={{ background: 'var(--green-dim)', borderColor: 'rgba(16,185,129,0.3)', color: 'var(--green)' }}>
+                                    <span className="nav-badge-dot" />Live
+                                </span>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 12, background: `${p.color}20`, border: `1px solid ${p.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: p.color }}>
+                                {p.phase}
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{p.label}</div>
+                                <div style={{ fontSize: '0.8rem', color: p.active ? p.color : 'var(--text-muted)', fontWeight: 600 }}>{p.subtitle}</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {p.steps.map((s, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${p.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                                        <s.icon size={15} color={p.color} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{s.label}</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{s.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 function PipelinePreview() {
     const [tick, setTick] = useState(0);
     useEffect(() => {
@@ -55,44 +137,26 @@ function PipelinePreview() {
         return () => clearInterval(t);
     }, []);
 
-      {/* Pipeline phases */}
-      <section className="container" style={{ paddingBottom: 80 }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Multi-Phase Pipeline</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Each phase plugs in cleanly — no rewrites, just new agents.</p>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-          {phases.map(p => (
-            <div key={p.phase} className="card" style={{ borderColor: p.active ? `${p.color}40` : 'var(--border)', background: p.active ? `${p.color}08` : 'var(--bg-card)', position: 'relative', overflow: 'hidden' }}>
-              {p.active && (
-                <div style={{ position: 'absolute', top: 14, right: 14 }}>
-                  <span className="nav-badge" style={{ background: 'var(--green-dim)', borderColor: 'rgba(16,185,129,0.3)', color: 'var(--green)' }}>
-                    <span className="nav-badge-dot" />Live
-                  </span>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${p.color}20`, border: `1px solid ${p.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 800, color: p.color }}>
-                  {p.phase}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{p.label}</div>
-                  <div style={{ fontSize: '0.75rem', color: p.active ? p.color : 'var(--text-muted)', fontWeight: 600 }}>{p.subtitle}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {p.steps.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 7, background: `${p.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                      <s.icon size={13} color={p.color} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{s.label}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.desc}</div>
-                    </div>
-                  </div>
+    return (
+        <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: 20,
+            overflow: 'hidden',
+            backdropFilter: 'blur(24px)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.4), 0 0 0 1px var(--border)',
+            width: '100%'
+        }}>
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-surface)'
+            }}>
+                {['#ef4444', '#f59e0b', '#10b981'].map(c => (
+                    <div key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: c }} />
                 ))}
-                <span style={{ fontSize: '0.8rem', color: 'rgba(192,132,252,0.6)', fontFamily: 'var(--font-mono)', marginLeft: 10 }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginLeft: 10 }}>
                     flow — main agent line
                 </span>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -105,7 +169,7 @@ function PipelinePreview() {
                 {previewStages.map((stage, i) => {
                     const isDone = stage.status === 'done';
                     const isRunning = stage.status === 'running';
-                    const dotColor = isDone ? '#10b981' : isRunning ? '#a855f7' : 'rgba(255,255,255,0.1)';
+                    const dotColor = isDone ? '#10b981' : isRunning ? '#a855f7' : 'var(--border-focus)';
 
                     return (
                         <div key={i} style={{
@@ -119,24 +183,24 @@ function PipelinePreview() {
                                 boxShadow: isRunning ? '0 0 10px #a855f7' : isDone ? '0 0 8px #10b981' : 'none',
                                 animation: isRunning ? 'pulse 1.5s infinite' : 'none',
                             }} />
-                            <stage.icon size={14} color={isDone ? '#10b981' : isRunning ? '#c084fc' : 'rgba(255,255,255,0.2)'} />
+                            <stage.icon size={14} color={isDone ? '#10b981' : isRunning ? '#c084fc' : 'var(--text-muted)'} />
                             <span style={{
                                 fontSize: '0.85rem',
-                                color: isDone ? '#fff' : isRunning ? '#c084fc' : 'rgba(255,255,255,0.3)',
+                                color: isDone ? 'var(--text-primary)' : isRunning ? '#c084fc' : 'var(--text-muted)',
                                 fontFamily: 'var(--font-mono)',
                                 flex: 1,
                                 fontWeight: isRunning ? 700 : 400,
                             }}>
                                 {stage.label}{isRunning && '▌'}
                             </span>
-                            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-mono)' }}>{stage.time}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{stage.time}</span>
                         </div>
                     );
                 })}
             </div>
 
-            <div style={{ padding: '12px 24px', borderTop: '1px solid rgba(168,85,247,0.1)', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(192,132,252,0.4)', fontFamily: 'var(--font-mono)' }}>Agent.v2 @ main</span>
+            <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Agent.v2 @ main</span>
                 <span style={{ fontSize: '0.7rem', color: '#10b981', fontFamily: 'var(--font-mono)' }}>active</span>
             </div>
         </div>
@@ -147,11 +211,6 @@ export default function HomePage() {
     return (
         <div style={{
             position: 'relative',
-            overflow: 'hidden',
-            height: 'calc(100vh - 65px)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
             background: 'var(--bg-base)',
             padding: '24px 0'
         }}>
@@ -270,6 +329,9 @@ export default function HomePage() {
                     </div>
                 </div>
             </section>
+
+            {/* PIPELINE PHASES (New) */}
+            <PipelinePhases />
 
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.9); } }
