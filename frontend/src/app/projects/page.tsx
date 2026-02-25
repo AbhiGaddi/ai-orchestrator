@@ -236,47 +236,66 @@ export default function ProjectsPage() {
         content = (
             <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                padding: '80px 40px',
+                minHeight: '60vh',
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border)',
-                borderRadius: 24,
+                borderRadius: 32,
                 boxShadow: 'var(--shadow-card)',
-                marginTop: -12, // Pull closer to header
+                padding: '80px 40px',
+                position: 'relative',
+                overflow: 'hidden',
+                marginTop: 20
             }}>
-                <div style={{
-                    width: 72, height: 72, borderRadius: 20,
-                    background: 'rgba(168,85,247,0.1)',
-                    border: '1px solid rgba(168,85,247,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: 24,
-                    boxShadow: '0 0 40px rgba(168,85,247,0.15)'
-                }}>
-                    <FolderOpen size={32} color="#a855f7" />
+                {/* Visual patterns */}
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.03, backgroundImage: 'radial-gradient(var(--text-primary) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '40%', height: '40%', background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        padding: '6px 16px',
+                        background: 'rgba(168,85,247,0.1)',
+                        border: '1px solid rgba(168,85,247,0.2)',
+                        borderRadius: 999,
+                        marginBottom: 32,
+                    }}>
+                        <Sparkles size={14} color="#a855f7" />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Ready to Initialize
+                        </span>
+                    </div>
+
+                    <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, marginBottom: 20, color: 'var(--text-primary)', letterSpacing: '-0.04em' }}>
+                        Transform discussions into <br />
+                        <span style={{ background: 'linear-gradient(to right, #a855f7, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Actionable Software.</span>
+                    </h1>
+
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: 640, marginBottom: 48, lineHeight: 1.8 }}>
+                        Your project grid is currently empty. Initialize your first execution boundary to start mapping repositories and orchestrating AI agents.
+                    </p>
+
+                    <Link href="/projects/new">
+                        <button
+                            className="btn"
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                padding: '18px 48px', borderRadius: 16,
+                                background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                                border: 'none', color: '#fff',
+                                fontSize: '1.1rem', fontWeight: 900,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                boxShadow: '0 12px 40px rgba(168,85,247,0.4)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                                transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) translateY(0)'}
+                        >
+                            <Plus size={24} /> Initialize Workspace
+                        </button>
+                    </Link>
                 </div>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 12, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    No Active Projects
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', textAlign: 'center', maxWidth: 460, marginBottom: 36, lineHeight: 1.7 }}>
-                    Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks with full automation.
-                </p>
-                <Link href="/projects/new">
-                    <button
-                        className="btn"
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            padding: '14px 40px', borderRadius: 14,
-                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
-                            border: 'none', color: '#fff',
-                            fontSize: '1rem', fontWeight: 800,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                            boxShadow: '0 8px 32px rgba(168,85,247,0.3)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
-                        }}
-                    >
-                        <Plus size={20} /> Initialize Project
-                    </button>
-                </Link>
             </div>
         );
     } else {
@@ -301,58 +320,63 @@ export default function ProjectsPage() {
                 maxWidth: 1600, padding: '0 60px' // Slightly adjusted padding
             }}>
 
-                {/* ── Page Header: Unified Hero ── */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
-                    gap: 40,
-                    alignItems: 'center',
-                    marginBottom: 40,
-                    background: 'var(--bg-card)',
-                    padding: '36px 48px',
-                    borderRadius: 24,
-                    border: '1px solid var(--border)',
-                    boxShadow: 'var(--shadow-card)',
-                }}>
-                    <div>
-                        <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8,
-                            padding: '5px 14px',
-                            background: 'rgba(168,85,247,0.08)',
-                            border: '1px solid rgba(168,85,247,0.2)',
-                            borderRadius: 999,
-                            marginBottom: 16,
-                        }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', animation: 'pulse 2s infinite' }} />
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase' }}>
-                                Execution Boundaries
-                            </span>
+                {/* ── Page Header: Unified Hero (Hidden when empty to avoid redundancy) ── */}
+                {(isLoading || projects.length > 0) && (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1fr) auto',
+                        gap: 40,
+                        alignItems: 'center',
+                        marginBottom: 20,
+                        background: 'var(--bg-card)',
+                        padding: '36px 48px',
+                        borderRadius: 24,
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-card)',
+                    }}>
+                        <div>
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 8,
+                                padding: '5px 14px',
+                                background: 'rgba(168,85,247,0.08)',
+                                border: '1px solid rgba(168,85,247,0.2)',
+                                borderRadius: 999,
+                                marginBottom: 16,
+                            }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', animation: 'pulse 2s infinite' }} />
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase' }}>
+                                    Execution Boundaries
+                                </span>
+                            </div>
+                            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: 10 }}>
+                                Project Grid
+                            </h1>
+                            <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: 500, lineHeight: 1.6 }}>
+                                Deploy isolated orchestrator instances. Each project acts as a secure boundary for its mapped repositories.
+                            </p>
                         </div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: 10 }}>
-                            Project Grid
-                        </h1>
-                        <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: 500, lineHeight: 1.6 }}>
-                            Deploy isolated orchestrator instances. Each project acts as a secure boundary for its mapped repositories.
-                        </p>
-                    </div>
 
-                    <Link href="/projects/new">
-                        <button className="btn pr-btn" style={{
-                            height: 50, padding: '0 32px',
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            borderRadius: 14,
-                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
-                            border: 'none', color: '#fff',
-                            fontSize: '0.95rem', fontWeight: 800,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                            boxShadow: '0 8px 24px rgba(168,85,247,0.25)',
-                            transition: 'transform 0.2s',
-                            letterSpacing: '0.02em',
-                        }}>
-                            <Plus size={18} /> INITIALIZE PROJECT
-                        </button>
-                    </Link>
-                </div>
+                        {projects.length > 0 && (
+                            <Link href="/projects/new">
+                                <button className="btn pr-btn" style={{
+                                    height: 50, padding: '0 32px',
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    borderRadius: 14,
+                                    background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                                    border: 'none', color: '#fff',
+                                    fontSize: '0.95rem', fontWeight: 800,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                    boxShadow: '0 8px 24px rgba(168,85,247,0.25)',
+                                    transition: 'transform 0.2s',
+                                    letterSpacing: '0.02em',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    <Plus size={18} /> INITIALIZE PROJECT
+                                </button>
+                            </Link>
+                        )}
+                    </div>
+                )}
 
                 {/* ── Content ── */}
                 {content}
