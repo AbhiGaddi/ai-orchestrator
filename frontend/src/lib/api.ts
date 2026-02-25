@@ -7,6 +7,9 @@ export async function fetchApi<T>(endpoint: string, options?: RequestInit): Prom
         ...options,
         headers: { 'Content-Type': 'application/json', ...options?.headers },
     });
+    if (res.status === 204) {
+        return {} as T;
+    }
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || `API Error: ${res.status}`);
@@ -81,6 +84,9 @@ export const listTasks = (projectId?: string): Promise<Task[]> => {
     return fetchApi(`/api/tasks${qs}`);
 };
 
+export const syncTasks = (): Promise<{ status: string; updated_tasks: number }> =>
+    fetchApi('/api/tasks/sync', { method: 'POST' });
+
 export const getTask = (id: string): Promise<Task> => fetchApi(`/api/tasks/${id}`);
 
 export const updateTask = (
@@ -96,6 +102,12 @@ export const approveTask = (id: string, edits?: Partial<Task>): Promise<Task> =>
 
 export const rejectTask = (id: string): Promise<Task> =>
     fetchApi(`/api/tasks/${id}/reject`, { method: 'PATCH' });
+
+export const abortTask = (id: string): Promise<Task> =>
+    fetchApi(`/api/tasks/${id}/abort`, { method: 'POST' });
+
+export const deleteTask = (id: string): Promise<void> =>
+    fetchApi(`/api/tasks/${id}`, { method: 'DELETE' });
 
 // -- Execution --
 export const executeTask = (id: string): Promise<Task> =>

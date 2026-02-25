@@ -25,6 +25,7 @@ Emails are often stored in unencrypted archives; security is paramount.
 <FORMATTING_GUIDELINES>
 - Use clean HTML with inline styling.
 - Keep the summary professional and concise.
+- **CRITICAL**: If a GitHub Link is provided in <TASK_DATA>, you MUST include a prominent "View Issue in GitHub" link or button in the email body so stakeholders can track progress.
 </FORMATTING_GUIDELINES>
 
 <OUTPUT_SCHEMA>

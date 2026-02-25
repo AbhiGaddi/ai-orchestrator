@@ -63,7 +63,7 @@ class BoundedReActAgent:
         conversation_history = f"Task: {json.dumps(task_context)}\n"
         
         for step in range(self.max_steps):
-            logger.info(f"Agent Step {step+1}/{self.max_steps}")
+            logger.info(f"--- 🤖 Agent Step {step+1}/{self.max_steps} ---")
             
             # 1. Reason
             response = await self.llm.generate(
@@ -75,12 +75,13 @@ class BoundedReActAgent:
             # 2. Parse Action
             try:
                 action = AgentAction(**response.parsed_json)
+                logger.debug(f"[Thought] {action.thought}")
             except Exception as e:
-                # Agent hallucinated schema. Push error into history and force retry.
+                logger.error(f"[Schema Error] Invalid JSON: {e}")
                 conversation_history += f"\nSystem Error: Invalid JSON schema returned: {e}\n"
                 continue
             
-            # 3. Persist Reasoning to DB (Constraint B: Observability)
+            # 3. Persist Reasoning to DB
             db_step = AgentRunStep(
                 agent_run_id=agent_run_id,
                 step_number=step + 1,
@@ -95,15 +96,22 @@ class BoundedReActAgent:
 
             # 4. Act & Observe
             if action.action_type == "final_answer":
+                logger.info("✅ Final Answer reached.")
                 db_step.status = "COMPLETED"
                 await db_session.commit()
                 return action.final_output
 
             if action.action_type == "tool_call":
+                logger.info(f"🛠️  Calling Tool: {action.tool_name}")
+                logger.debug(f"Input: {json.dumps(action.tool_input)}")
+                
                 tool_result = await self.tools.execute(action.tool_name, action.tool_input or {})
                 
-                # Summarization / Truncation guardrail (Constraint A: Token Control)
+                # Summarization / Truncation guardrail
                 result_str = str(tool_result)
+                summary_str = result_str if len(result_str) < 500 else result_str[:497] + "..."
+                logger.info(f"📝 Tool Result: {summary_str}")
+
                 if len(result_str) > 5000:
                     result_str = result_str[:4900] + "\n...[TRUNCATED TO SAVE TOKENS]"
                     

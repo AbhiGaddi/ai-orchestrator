@@ -171,17 +171,22 @@ class Orchestrator:
         Runs a list of agents sequentially with managed context inheritance.
         """
         context = initial_context.copy()
+        pipeline_name = " -> ".join([a.name for a in agents])
+        logger.info(f"🚀 Starting Pipeline: [{pipeline_name}]")
         
-        for agent_cls in agents:
-            # Corrected the syntax error here. Assuming the intent was to call run_agent.
-            # The `tasks = self._extract_json(raw_response)` part was a fragment.
+        for i, agent_cls in enumerate(agents):
+            logger.info(f"📍 Pipeline Step {i+1}/{len(agents)}: {agent_cls.name}")
             result = await self.run_agent(agent_cls, task, context, identity)
+            
             if not result.success:
-                logger.warning(f"Pipeline halted: {agent_cls.name} failed")
+                logger.error(f"❌ Pipeline halted: {agent_cls.name} failed with error: {result.error}")
                 break
             
             # Context Inheritance (Step 9: Promotion to next agent)
             if result.output:
+                new_keys = list(result.output.keys())
+                logger.debug(f"↗️  Inheriting output keys from {agent_cls.name}: {new_keys}")
                 context.update(result.output)
                 
+        logger.info(f"🏁 Pipeline Finished: [{pipeline_name}]")
         return context

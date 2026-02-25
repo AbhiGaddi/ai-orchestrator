@@ -203,8 +203,9 @@ pre {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
+  padding: 0 60px;
 }
+
 
 .nav-inner {
   max-width: 1600px;
@@ -255,11 +256,11 @@ pre {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  gap: 8px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
-  font-size: 0.83rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--text-secondary);
   text-decoration: none;
   transition: var(--transition);

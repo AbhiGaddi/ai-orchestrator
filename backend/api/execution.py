@@ -28,16 +28,63 @@ router = APIRouter(prefix="/api/execution", tags=["Execution"])
 PROJECT_NOT_FOUND = "Project not found"
 
 
-@router.post("/{task_id}/execute", response_model=TaskResponse)
-async def execute_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
-    """
-    Explicit execution trigger (human-approved).
-    Pipeline: TicketAgent → EmailAgent
+from fastapi import BackgroundTasks
+from backend.core.orchestrator import IdentityEnvelope
 
-    Requires task.approved == True.
-    Steps:
-      1. TicketAgent creates GitHub issue
-      2. EmailAgent sends email summary
+async def background_code_generation(task_id: UUID, db_session_factory: Any, context: Dict[str, Any]):
+    """
+    Background worker to handle Phase 2: Code Generation.
+    """
+    from backend.db.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(select(Task).where(Task.id == task_id))
+            task = result.scalar_one_or_none()
+            if not task:
+                return
+
+            logger.info(f"[Background] Starting Phase 2 for task {task_id}")
+            orchestrator = Orchestrator(db)
+            
+            # Step 3: Generate Code and PR
+            code_result = await orchestrator.run_agent(CodeAgent, task, context)
+            
+            if code_result.success:
+                task.github_pr_id = code_result.output.get("github_pr_id")
+                task.github_pr_url = code_result.output.get("github_pr_url")
+                task.branch_name = code_result.output.get("branch_name")
+                task.status = "COMPLETED"
+                task.error_message = None
+                logger.info(f"[Background] Task {task_id} Phase 2 completed")
+            else:
+                task.status = "FAILED"
+                task.error_message = code_result.error
+                logger.error(f"[Background] Task {task_id} Phase 2 failed: {code_result.error}")
+            
+            await db.commit()
+        except Exception as e:
+            logger.error(f"[Background] Fatal error in Phase 2 for task {task_id}: {e}")
+            try:
+                result = await db.execute(select(Task).where(Task.id == task_id))
+                task = result.scalar_one_or_none()
+                if task:
+                    task.status = "FAILED"
+                    task.error_message = str(e)
+                    await db.commit()
+            except Exception: # Changed from 'except Exception as inner_e:'
+                # If we can't record the error, just log it without trying to access inner_e
+                logger.error(f"[Background] Failed to record fatal error during recovery for task {task_id}")
+
+@router.post("/{task_id}/execute", response_model=TaskResponse)
+async def execute_task(
+    task_id: UUID, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Refined execution trigger:
+    1. Phase 1 (Issue + Email) runs Synchronously.
+    2. Phase 2 (Code Generation) triggered as a Background Task.
     """
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
@@ -45,22 +92,16 @@ async def execute_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
 
     if not task.approved:
-        raise HTTPException(
-            status_code=400,
-            detail="Task must be approved before execution. Call /approve first."
-        )
+        raise HTTPException(status_code=400, detail="Task must be approved first.")
 
-    if task.status in ("IN_PROGRESS", "COMPLETED"):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Task is already in status={task.status}"
-        )
+    if task.status in ("IN_PROGRESS", "COMPLETED") and not task.github_issue_id:
+        raise HTTPException(status_code=409, detail="Task already executing Phase 1")
 
+    # Start Phase 1
     task.status = "IN_PROGRESS"
     await db.flush()
 
     orchestrator = Orchestrator(db)
-
     context = {
         "task_id": str(task.id),
         "title": task.title,
@@ -80,25 +121,32 @@ async def execute_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
             context.update(ticket_result.output)
         else:
             task.status = "FAILED"
-            await db.flush()
+            await db.commit()
             return TaskResponse.model_validate(task)
 
-        # Step 2: Send email (even if ticket failed, we note it gracefully)
+        # Step 2: Send email
         email_context = {**context, "github_issue_url": task.github_issue_url or ""}
         email_result = await orchestrator.run_agent(EmailAgent, task, email_context)
         if email_result.success:
             task.email_sent = True
 
-        task.status = "COMPLETED"
-        logger.info(f"[Execution API] Task {task_id} pipeline completed")
+        # Phase 1 Complete - Commit so background task sees the updated state
+        await db.commit()
+        
+        # Trigger Phase 2 in background
+        background_tasks.add_task(background_code_generation, task.id, None, context)
+        
+        # We return the task state after Phase 1. 
+        # The UI will see it as "IN_PROGRESS" or we can set a specific status.
+        task.status = "IN_PROGRESS" 
+        logger.info(f"[Execution API] Phase 1 complete for {task_id}. Backgrounding Phase 2.")
+        return TaskResponse.model_validate(task)
 
     except Exception as e:
         task.status = "FAILED"
-        logger.error(f"[Execution API] Task {task_id} pipeline failed: {e}")
-        await db.flush()
-        raise HTTPException(status_code=500, detail=f"Execution pipeline failed: {str(e)}")
-
-    return TaskResponse.model_validate(task)
+        logger.error(f"[Execution API] pipeline failed: {e}")
+        await db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{task_id}/code", response_model=TaskResponse)
 async def generate_code(
@@ -152,7 +200,7 @@ async def generate_code(
             logger.info(f"[Execution API] Task {task_id} Phase 2 completed")
         else:
             task.status = "FAILED"
-            logger.error(f"[Execution API] Task {task_id} Phase 2 failed: {code_result.error_message}")
+            logger.error(f"[Execution API] Task {task_id} Phase 2 failed: {code_result.error}")
 
     except Exception as e:
         task.status = "FAILED"
@@ -203,7 +251,7 @@ async def review_pr(task_id: UUID, db: AsyncSession = Depends(get_db)):
             logger.info(f"[Execution API] Task {task_id} PR Review completed")
         else:
             task.status = "FAILED"
-            logger.error(f"[Execution API] Task {task_id} PR Review failed: {review_result.error_message}")
+            logger.error(f"[Execution API] Task {task_id} PR Review failed: {review_result.error}")
 
     except Exception as e:
         task.status = "FAILED"
@@ -262,7 +310,7 @@ async def fix_sonar_issue(
         else:
             task.status = "FAILED"
             await db.commit()
-            raise HTTPException(status_code=500, detail=result.error_message)
+            raise HTTPException(status_code=500, detail=result.error)
     except Exception as e:
         task.status = "FAILED"
         await db.commit()
@@ -328,7 +376,7 @@ async def manual_pr_review(
         else:
             task.status = "FAILED"
             await db.commit()
-            raise HTTPException(status_code=500, detail=result.error_message)
+            raise HTTPException(status_code=500, detail=result.error)
     except Exception as e:
         task.status = "FAILED"
         await db.commit()
@@ -380,7 +428,7 @@ async def sonar_sweep(
         else:
             task.status = "FAILED"
             await db.commit()
-            raise HTTPException(status_code=500, detail=result.error_message)
+            raise HTTPException(status_code=500, detail=result.error)
     except Exception as e:
         task.status = "FAILED"
         await db.commit()

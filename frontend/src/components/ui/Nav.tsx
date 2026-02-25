@@ -68,7 +68,7 @@ export default function Nav() {
                 {/* Logo */}
                 <Link href="/" className="nav-logo">
                     <div className="nav-logo-icon">
-                        <Bot size={16} color="#fff" />
+                        <Bot size={20} color="#fff" />
                     </div>
                     <span style={{ fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.04em' }}>Flow</span>
                 </Link>
@@ -101,7 +101,7 @@ export default function Nav() {
                                     }}
                                 >
                                     <Icon
-                                        size={14}
+                                        size={18}
                                         color={isActive ? color : undefined}
                                         style={{ flexShrink: 0 }}
                                     />

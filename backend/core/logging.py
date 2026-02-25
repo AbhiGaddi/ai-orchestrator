@@ -16,7 +16,7 @@ class ColorFormatter(logging.Formatter):
     reset = "\x1b[0m"
     
     # Format string: time | level | name | message
-    fmt = "%(asctime)s | %(levelname)-8s| %(name)s | %(message)s"
+    fmt = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
 
     FORMATS = {
         logging.DEBUG: grey + fmt + reset,
@@ -28,9 +28,15 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        # Highlight our own agents/services specifically
+        
+        # Color coding by namespace
         if "backend.agents" in record.name:
             log_fmt = self.blue + self.fmt + self.reset
+        elif "backend.api" in record.name:
+            log_fmt = self.cyan + self.fmt + self.reset
+        elif "backend.core" in record.name:
+            # Magenta-ish for core orchestration
+            log_fmt = "\x1b[35;20m" + self.fmt + self.reset
             
         formatter = logging.Formatter(log_fmt, datefmt="%H:%M:%S")
         return formatter.format(record)
@@ -43,7 +49,7 @@ def setup_logging():
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     
-    # Remove existing handlers
+    # Remove existing handlers to avoid duplicates
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
         
@@ -52,15 +58,17 @@ def setup_logging():
     stdout_handler.setFormatter(ColorFormatter())
     root_logger.addHandler(stdout_handler)
 
-    # SILENCE NOISE
-    # SQLAlchemy: Only show warnings/errors unless we are truly doing DB debugging
+    # Specific levels for third-party libraries
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-    
-    # HTTPX: Very noisy in debug, silence it
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
     
-    logging.info(f"🚀 Logging initialized (Level: {logging.getLevelName(log_level)})")
+    # Force DEBUG for backend components in dev
+    if settings.DEBUG:
+        logging.getLogger("backend").setLevel(logging.DEBUG)
+    
+    logging.info(f"🤖 Logging System Ready (Level: {logging.getLevelName(log_level)})")
 
 
 def get_logger(name: str) -> logging.Logger:

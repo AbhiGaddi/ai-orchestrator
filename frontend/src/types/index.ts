@@ -4,7 +4,8 @@ export type TaskStatus =
     | 'REJECTED'
     | 'IN_PROGRESS'
     | 'COMPLETED'
-    | 'FAILED';
+    | 'FAILED'
+    | 'DONE';
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -42,7 +43,7 @@ export interface Task {
     deploy_environment?: string | null;
     deployment_status?: string | null;
     deployment_url?: string | null;
-
+    error_message?: string;
     created_at: string;
     updated_at: string;
 }

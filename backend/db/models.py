@@ -8,6 +8,9 @@ from sqlalchemy.orm import relationship
 from backend.db.database import Base
 
 
+CASCADE_DELETE = "all, delete-orphan"
+
+
 class Project(Base):
     """
     Project entity to isolate multi-tenant execution contexts.
@@ -30,7 +33,7 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="project", cascade=CASCADE_DELETE)
 
     def __repr__(self):
         return f"<Project id={self.id} name={self.name!r}>"
@@ -94,13 +97,16 @@ class Task(Base):
     deployment_status = Column(String(50), nullable=True)
     deployment_url = Column(String(500), nullable=True)
 
+    # Error Tracking
+    error_message = Column(Text, nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     project = relationship("Project", back_populates="tasks")
-    agent_runs = relationship("AgentRun", back_populates="task", cascade="all, delete-orphan")
+    agent_runs = relationship("AgentRun", back_populates="task", cascade=CASCADE_DELETE)
 
     def __repr__(self):
         return f"<Task id={self.id} title={self.title!r} status={self.status}>"
@@ -131,7 +137,7 @@ class AgentRun(Base):
 
     # Relationships
     task = relationship("Task", back_populates="agent_runs")
-    steps = relationship("AgentRunStep", back_populates="agent_run", cascade="all, delete-orphan")
+    steps = relationship("AgentRunStep", back_populates="agent_run", cascade=CASCADE_DELETE)
 
     def __repr__(self):
         return f"<AgentRun agent={self.agent_name} task={self.task_id} status={self.status}>"

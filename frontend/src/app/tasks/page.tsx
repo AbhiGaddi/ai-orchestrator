@@ -1,31 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { RefreshCw, Plus, Brain, FileText, Sparkles, GitBranch, Zap, Search } from 'lucide-react';
+import { RefreshCw, Plus, Brain, FileText, Sparkles, GitBranch, Zap, Search, CheckCircle2 } from 'lucide-react';
 import { Task, Project } from '@/types';
-import { listTasks, listProjects } from '@/lib/api';
+import { listTasks, listProjects, syncTasks } from '@/lib/api';
 import TaskCard from '@/components/tasks/TaskCard';
 import ToastContainer, { toast } from '@/components/ui/Toast';
 import Link from 'next/link';
 
-type FilterKey = 'ALL' | 'PENDING' | 'READY_TICKET' | 'READY_CODE' | 'READY_REVIEW' | 'REVIEW_DONE' | 'FAILED';
 
-function matchesFilter(t: Task, filter: FilterKey): boolean {
-    if (filter === 'ALL') return true;
-    if (filter === 'PENDING') return t.status === 'PENDING';
-    if (filter === 'READY_TICKET') return t.status === 'APPROVED' && !t.github_issue_id;
-    if (filter === 'READY_CODE') return t.status === 'COMPLETED' && !!t.github_issue_id && !t.github_pr_id;
-    if (filter === 'READY_REVIEW') return t.status === 'COMPLETED' && !!t.github_pr_id && !t.pr_reviewed;
-    if (filter === 'REVIEW_DONE') return t.status === 'COMPLETED' && !!t.pr_reviewed;
-    if (filter === 'FAILED') return t.status === 'FAILED';
-    return false;
-}
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [filter, setFilter] = useState<FilterKey>('ALL');
+
     const [searchQuery, setSearchQuery] = useState('');
 
     async function loadTasks(silent = false) {
@@ -36,6 +25,14 @@ export default function TasksPage() {
         }
 
         try {
+            if (silent) {
+                // Background sync GitHub PRs before fetching tasks
+                try {
+                    await syncTasks();
+                } catch (e) {
+                    console.error("Sync failed", e);
+                }
+            }
             const [tasksData, projectsData] = await Promise.all([
                 listTasks(),
                 listProjects()
@@ -56,43 +53,63 @@ export default function TasksPage() {
         setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
     }
 
+    function handleDeleteTask(deletedId: string) {
+        setTasks(prev => prev.filter(task => task.id !== deletedId));
+    }
+
     const counts = {
         total: tasks.length,
-        pending: tasks.filter(t => t.status === 'PENDING').length,
-        readyTicket: tasks.filter(t => t.status === 'APPROVED' && !t.github_issue_id).length,
-        readyCode: tasks.filter(t => t.status === 'COMPLETED' && !!t.github_issue_id && !t.github_pr_id).length,
-        readyReview: tasks.filter(t => t.status === 'COMPLETED' && !!t.github_pr_id && !t.pr_reviewed).length,
-        reviewDone: tasks.filter(t => t.status === 'COMPLETED' && !!t.pr_reviewed).length,
-        failed: tasks.filter(t => t.status === 'FAILED').length,
+        todo: tasks.filter(t => ['PENDING', 'APPROVED', 'REJECTED'].includes(t.status)).length,
+        inProgress: tasks.filter(t => ['IN_PROGRESS', 'FAILED'].includes(t.status)).length,
+        review: tasks.filter(t => ['COMPLETED', 'REVIEW_DONE'].includes(t.status)).length,
+        done: tasks.filter(t => t.status === 'DONE').length,
     };
 
-    const tabs: { label: string; key: FilterKey; count: number; color?: string }[] = [
-        { label: 'All', key: 'ALL', count: counts.total },
-        { label: 'Review', key: 'PENDING', count: counts.pending, color: 'var(--yellow)' },
-        { label: 'Needs Setup', key: 'READY_TICKET', count: counts.readyTicket, color: 'var(--blue)' },
-        { label: 'Ready Code', key: 'READY_CODE', count: counts.readyCode, color: 'var(--purple)' },
-        { label: 'To Review', key: 'READY_REVIEW', count: counts.readyReview, color: 'var(--orange)' },
-        { label: 'Reviewed', key: 'REVIEW_DONE', count: counts.reviewDone, color: 'var(--green)' },
-        { label: 'Failed', key: 'FAILED', count: counts.failed, color: 'var(--red)' },
-    ];
-
     const filtered = tasks
-        .filter(t => matchesFilter(t, filter))
         .filter(t => {
             if (!searchQuery.trim()) return true;
             const q = searchQuery.toLowerCase();
             return t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q);
         });
-    const activeTab = tabs.find(t => t.key === filter);
+
+    const columns = [
+        {
+            title: 'TO DO',
+            items: filtered.filter(t => ['PENDING', 'APPROVED', 'REJECTED'].includes(t.status)),
+            color: 'var(--blue)'
+        },
+        {
+            title: 'In Progress',
+            items: filtered.filter(t => ['IN_PROGRESS', 'FAILED'].includes(t.status)),
+            color: 'var(--yellow)'
+        },
+        {
+            title: 'Review',
+            items: filtered.filter(t => ['COMPLETED', 'REVIEW_DONE'].includes(t.status)),
+            color: 'var(--purple)'
+        },
+        {
+            title: 'Done',
+            items: filtered.filter(t => t.status === 'DONE'),
+            color: 'var(--green)'
+        }
+    ];
 
     return (
-        <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
+        <div style={{ position: 'relative', minHeight: 'calc(100vh - 72px)' }}>
             <ToastContainer />
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
             <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px' }}>
                 {/* ── Page header ── */}
-                <div style={{ padding: '30px 0 20px' }}>
+                <div style={{
+                    padding: '30px 80px 20px 80px',
+                    margin: '0 -80px',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 40,
+                    background: 'var(--bg-base)'
+                }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                         <div>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', marginBottom: 12 }}>
@@ -115,15 +132,16 @@ export default function TasksPage() {
                     {/* Quick Stats Dashboard */}
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(4, 1fr)',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
                         gap: 20,
                         marginBottom: 32
                     }}>
                         {[
-                            { label: 'Total Syncs', value: counts.total, icon: FileText, color: '#6366f1' },
-                            { label: 'Awaiting Action', value: counts.pending, icon: Sparkles, color: '#a855f7' },
-                            { label: 'Integration Ready', value: counts.readyTicket, icon: GitBranch, color: '#10b981' },
-                            { label: 'Active Pipeline', value: counts.readyCode + counts.readyReview, icon: Zap, color: '#f59e0b' },
+                            { label: 'Total Tasks', value: counts.total, icon: FileText, color: '#6366f1' },
+                            { label: 'To Do', value: counts.todo, icon: Sparkles, color: '#a855f7' },
+                            { label: 'In Progress', value: counts.inProgress, icon: Zap, color: '#f59e0b' },
+                            { label: 'In Review', value: counts.review, icon: GitBranch, color: '#3b82f6' },
+                            { label: 'Done', value: counts.done, icon: CheckCircle2, color: '#10b981' },
                         ].map((stat) => (
                             <div key={stat.label} style={{
                                 background: 'var(--bg-card)',
@@ -151,7 +169,7 @@ export default function TasksPage() {
                         ))}
                     </div>
 
-                    {/* Search & Filter Bar */}
+                    {/* Search Bar Only */}
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -159,7 +177,7 @@ export default function TasksPage() {
                         background: 'rgba(255,255,255,0.03)',
                         border: '1px solid var(--border)',
                         borderRadius: 16,
-                        padding: '6px 6px 6px 16px',
+                        padding: '6px 16px',
                         marginBottom: 24,
                         backdropFilter: 'blur(10px)'
                     }}>
@@ -178,83 +196,68 @@ export default function TasksPage() {
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
-                        <div style={{ height: 24, width: 1, background: 'var(--border)' }} />
-                        <div style={{ display: 'flex', gap: 4, padding: '0 8px' }}>
-                            {tabs.map(tab => (
-                                <button
-                                    key={tab.key}
-                                    onClick={() => setFilter(tab.key)}
-                                    style={{
-                                        padding: '6px 14px',
-                                        borderRadius: 10,
-                                        fontSize: '0.75rem',
-                                        fontWeight: 700,
-                                        transition: 'all 0.2s',
-                                        background: filter === tab.key ? `${tab.color || 'var(--accent)'}15` : 'transparent',
-                                        color: filter === tab.key ? (tab.color || 'var(--accent)') : 'var(--text-secondary)',
-                                        border: '1px solid',
-                                        borderColor: filter === tab.key ? `${tab.color || 'var(--accent)'}40` : 'transparent',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6
-                                    }}
-                                >
-                                    {tab.label}
-                                    {tab.count > 0 && (
-                                        <span style={{
-                                            padding: '1px 6px',
-                                            borderRadius: 6,
-                                            background: filter === tab.key ? `${tab.color || 'var(--accent)'}25` : 'rgba(255,255,255,0.05)',
-                                            fontSize: '0.65rem'
-                                        }}>
-                                            {tab.count}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 </div>
 
-                {/* ── Task list ── */}
+                {/* ── Sprint Board ── */}
                 {loading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {[1, 2, 3].map(i => (
-                            <div key={`loading-${i}`} className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-lg)' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+                        {[1, 2, 3, 4].map(col => (
+                            <div key={`loading-col-${col}`} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {[1, 2].map(i => (
+                                    <div key={`loading-${col}-${i}`} className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-lg)' }} />
+                                ))}
+                            </div>
                         ))}
                     </div>
-                ) : filtered.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-icon">
-                            {(() => {
-                                if (filter === 'FAILED') return '⚠️';
-                                if (filter === 'ALL') return '📋';
-                                return '✓';
-                            })()}
-                        </div>
-                        <div className="empty-title">
-                            {filter === 'ALL' ? 'No tasks yet' : `No ${activeTab?.label.toLowerCase()} tasks`}
-                        </div>
-                        <p className="empty-sub">
-                            {filter === 'ALL'
-                                ? 'Go to Extract to paste a discussion and let the Flow agents create tasks for you.'
-                                : 'No items match your current filter and search.'}
-                        </p>
-                        {filter === 'ALL' && (
-                            <Link href="/extract" className="btn btn-primary" style={{ marginTop: 12, borderRadius: 12 }}>
-                                <Plus size={14} /> Extract Tasks
-                            </Link>
-                        )}
-                    </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 48 }}>
-                        {filtered.map(t => (
-                            <TaskCard
-                                key={t.id}
-                                task={t}
-                                onChange={updateTask}
-                                projectName={projects.find(p => p.id === t.project_id)?.name}
-                            />
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(4, minmax(280px, 1fr))',
+                        gap: 20,
+                        paddingBottom: 48,
+                        alignItems: 'flex-start'
+                    }}>
+                        {columns.map(col => (
+                            <div key={col.title} style={{
+                                background: 'rgba(0,0,0,0.15)',
+                                borderRadius: 20,
+                                border: '1px solid rgba(255,255,255,0.03)',
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px 16px', flexShrink: 0 }}>
+                                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: col.color, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, boxShadow: `0 0 10px ${col.color}` }} />
+                                        {col.title}
+                                    </h3>
+                                    <div style={{
+                                        background: 'var(--bg-card)', padding: '2px 8px', borderRadius: 10, fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)'
+                                    }}>
+                                        {col.items.length}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 16px 20px 16px' }}>
+                                    {col.items.map(t => (
+                                        <TaskCard
+                                            key={t.id}
+                                            task={t}
+                                            onChange={updateTask}
+                                            onDelete={handleDeleteTask}
+                                            projectName={projects.find(p => p.id === t.project_id)?.name}
+                                        />
+                                    ))}
+                                    {col.items.length === 0 && (
+                                        <div style={{
+                                            padding: '30px 20px', textAlign: 'center',
+                                            border: '2px dashed rgba(255,255,255,0.05)', borderRadius: 16,
+                                            color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600
+                                        }}>
+                                            No tasks here
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

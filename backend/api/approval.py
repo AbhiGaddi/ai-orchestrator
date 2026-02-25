@@ -89,3 +89,67 @@ async def reject_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
     task.status = "REJECTED"
     logger.info(f"[Approval API] Task {task_id} rejected")
     return TaskResponse.model_validate(task)
+
+
+@router.post("/{task_id}/abort", response_model=TaskResponse)
+async def abort_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Stop a task that is currently IN_PROGRESS."""
+    task = await _get_task_or_404(task_id, db)
+    
+    # We allow aborting if it's WORKING or stuck in APPROVED
+    task.status = "FAILED"
+    task.error_message = "Canceled by user"
+    
+    logger.info(f"[Approval API] Task {task_id} manually aborted")
+    await db.commit()
+    return TaskResponse.model_validate(task)
+
+
+@router.delete("/{task_id}", status_code=204)
+async def delete_task(task_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a task permanently."""
+    task = await _get_task_or_404(task_id, db)
+    await db.delete(task)
+    await db.commit()
+    logger.info(f"[Approval API] Task {task_id} deleted")
+    return None
+
+from backend.services.github_service import GitHubService
+
+@router.post("/sync", response_model=dict)
+async def sync_tasks(db: AsyncSession = Depends(get_db)):
+    """Sync tasks with GitHub to check if PRs are merged."""
+    query = select(Task).where(
+        and_(
+            Task.github_pr_id.is_not(None),
+            Task.status.in_(["COMPLETED", "IN_PROGRESS", "REVIEW_DONE"])
+        )
+    )
+    result = await db.execute(query)
+    tasks = result.scalars().all()
+    
+    updated_count = 0
+    github_clients = {}
+    
+    for task in tasks:
+        if not task.github_repo:
+            continue
+            
+        repo = task.github_repo
+        if repo not in github_clients:
+            github_clients[repo] = GitHubService(repo=repo)
+            
+        try:
+            pr_data = await github_clients[repo].get_pull_request(int(task.github_pr_id))
+            if pr_data.get("merged"):
+                task.status = "DONE"
+                updated_count += 1
+            elif pr_data.get("state") == "closed" and not pr_data.get("merged"):
+                pass  # Do we want to set it to FAILED or leave it?
+        except Exception as e:
+            logger.error(f"[Sync] Failed to check PR {task.github_pr_id} for task {task.id}: {e}")
+            
+    if updated_count > 0:
+        await db.commit()
+        
+    return {"status": "success", "updated_tasks": updated_count}

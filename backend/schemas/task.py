@@ -60,6 +60,7 @@ class TaskResponse(BaseModel):
     deploy_environment: Optional[str] = None
     deployment_status: Optional[str] = None
     deployment_url: Optional[str] = None
+    error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

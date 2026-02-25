@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Clock, Play, Github, Mail, AlertCircle, CheckSquare, Terminal, Tag, Search, ThumbsUp, Cpu, Folder, GitMerge } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Play, Github, Mail, AlertCircle, CheckSquare, Terminal, Tag, Search, ThumbsUp, Cpu, Folder, GitMerge, Trash2 } from 'lucide-react';
 import { Task, AgentRun, Project } from '@/types';
-import { getTask, listAgentRuns, executeTask, generateCodeTask, reviewPRTask, updateTask, getProject } from '@/lib/api';
+import { getTask, listAgentRuns, executeTask, generateCodeTask, reviewPRTask, updateTask, getProject, deleteTask } from '@/lib/api';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badges';
 import ToastContainer, { toast } from '@/components/ui/Toast';
 
@@ -23,6 +23,7 @@ export default function TaskDetailPage() {
     const [isEditingRepo, setIsEditingRepo] = useState(false);
     const [editRepoValue, setEditRepoValue] = useState("");
     const [project, setProject] = useState<Project | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (!taskId) return;
@@ -66,6 +67,19 @@ export default function TaskDetailPage() {
         }
     };
 
+    const handleDelete = async () => {
+        setActionLoading('delete');
+        try {
+            await deleteTask(task!.id);
+            toast('success', 'Task deleted successfully');
+            router.push('/tasks');
+        } catch (err: any) {
+            toast('error', err.message || `Failed to delete task`);
+            setActionLoading(null);
+            setShowDeleteConfirm(false);
+        }
+    };
+
     if (loading && !task) {
         return <div className="container" style={{ padding: 40, textAlign: 'center' }}><span className="spinner" style={{ width: 24, height: 24 }} /></div>;
     }
@@ -77,6 +91,7 @@ export default function TaskDetailPage() {
     const canExecute = task.approved && !['IN_PROGRESS', 'COMPLETED'].includes(task.status);
     const canGenerateCode = (task.status === 'COMPLETED' || task.status === 'FAILED') && !!task.github_issue_id && !task.github_pr_id;
     const canReviewPR = (task.status === 'COMPLETED' || task.status === 'FAILED') && !!task.github_pr_id;
+    const canReopen = task.status === 'REJECTED';
 
     // Step 1: Extracted & Approved
     const step1Done = task.approved;
@@ -86,6 +101,8 @@ export default function TaskDetailPage() {
     const step3Done = !!task.github_pr_id;
     // Step 4: Phase 2.5 (PR Reviewed)
     const step4Done = runs.some(r => r.agent_name === 'PRAgent' && r.status === 'COMPLETED');
+    // Step 5: Phase 3 (Merged and Done)
+    const step5Done = task.status === 'DONE';
 
 
     return (
@@ -119,6 +136,14 @@ export default function TaskDetailPage() {
                                     </span>
                                 )}
                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 600 }}>ID: {task.id}</span>
+                                <button
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    style={{ padding: '4px', marginLeft: 8, color: 'var(--text-muted)' }}
+                                    title="Delete Task"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                             <h1 style={{ fontSize: '1.4rem', margin: 0, fontWeight: 900, letterSpacing: '-0.02em' }}>{task.title}</h1>
                         </div>
@@ -142,6 +167,12 @@ export default function TaskDetailPage() {
                                     {task.status === 'FAILED' ? 'Retry AI Review PR' : 'AI Review PR'}
                                 </button>
                             )}
+                            {canReopen && (
+                                <button className="btn btn-secondary" onClick={() => doAction('reopen', 'Re-open Task', () => updateTask(task.id, { status: 'PENDING' } as any))} disabled={!!actionLoading}>
+                                    {actionLoading === 'reopen' ? <span className="spinner" /> : <Play size={14} />}
+                                    Re-Open Task
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -155,6 +186,7 @@ export default function TaskDetailPage() {
                         <StepItem title="GitHub Ticket" done={step2Done} active={step1Done && !step2Done} link={task.github_issue_url} icon={<Tag size={12} />} />
                         <StepItem title="Code Generated" done={step3Done} active={step2Done && !step3Done} link={task.github_pr_url} icon={<Cpu size={12} />} />
                         <StepItem title="PR Reviewed" done={step4Done} active={step3Done && !step4Done} icon={<Search size={12} />} />
+                        <StepItem title="Merged & Done" done={step5Done} active={step4Done && !step5Done} icon={<GitMerge size={12} />} />
                     </div>
                 </div>
 
@@ -349,6 +381,42 @@ export default function TaskDetailPage() {
                     </div>
                 )
             }
+
+            {/* Delete Modal */}
+            {showDeleteConfirm && (
+                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowDeleteConfirm(false)}>
+                    <div className="modal" style={{ maxWidth: 400, padding: 32, borderRadius: 24, textAlign: 'center' }}>
+                        <div style={{
+                            width: 64, height: 64, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px'
+                        }}>
+                            <Trash2 size={32} />
+                        </div>
+                        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12, color: 'var(--text-primary)' }}>Delete Task?</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
+                            Are you sure you want to completely delete this task? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={actionLoading === 'delete'}
+                                style={{ flex: 1, padding: '12px', borderRadius: 12 }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="btn btn-danger"
+                                onClick={handleDelete}
+                                disabled={actionLoading === 'delete'}
+                                style={{ flex: 1, padding: '12px', borderRadius: 12 }}
+                            >
+                                {actionLoading === 'delete' ? <span className="spinner" /> : 'Delete Task'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
