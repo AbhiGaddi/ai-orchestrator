@@ -292,7 +292,7 @@ export default function ProjectsPage() {
                             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)'}
                             onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) translateY(0)'}
                         >
-                            <Plus size={24} /> Initialize Workspace
+                            <Plus size={24} /> Initialize Project
                         </button>
                     </Link>
                 </div>

@@ -41,16 +41,16 @@ export default function ProjectForm({ initialData, onSubmit, isLoading, title, d
     };
 
     const isEditing = !!initialData?.id;
-    const submitLabel = isLoading ? 'Processing...' : (isEditing ? 'Save Changes' : 'Initialize Workspace');
+    const submitLabel = isLoading ? 'Processing...' : (isEditing ? 'Save Changes' : 'Initialize Project');
 
     return (
         <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingBottom: 60, paddingTop: 40 }}>
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingBottom: 40, paddingTop: 20 }}>
                 {/* Header / Back navigation */}
-                <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{
                             width: 44, height: 44, borderRadius: 12,
@@ -96,33 +96,35 @@ export default function ProjectForm({ initialData, onSubmit, isLoading, title, d
                 <form onSubmit={handleSubmit} style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
-                    gap: 24,
-                    alignItems: 'stretch'
+                    gap: 16,
+                    alignItems: 'start'
                 }}>
 
-                    {/* ── LEFT COLUMN: Identity & Security ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    {/* ── LEFT COLUMN: Core Identity & Rules ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
                         {/* Identity Section */}
                         <div style={{
-                            padding: '24px', borderRadius: 20,
+                            padding: '18px 22px', borderRadius: 18,
                             background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            boxShadow: 'var(--shadow-card)'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                                <FolderOpen size={16} color="#a855f7" />
-                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Core Identity</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FolderOpen size={14} color="#a855f7" />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Core Identity</span>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div>
-                                    <Label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>PROJECT NAME *</Label>
+                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>PROJECT NAME *</Label>
                                     <Input
                                         placeholder="e.g. Finance Analytics Engine"
                                         required
                                         style={{
-                                            height: 44, borderRadius: 10,
+                                            height: 40, borderRadius: 10,
                                             background: 'var(--bg-input)', border: '1px solid var(--border)',
                                             color: 'var(--text-primary)', fontSize: '0.9rem', padding: '0 14px'
                                         }}
@@ -132,14 +134,14 @@ export default function ProjectForm({ initialData, onSubmit, isLoading, title, d
                                 </div>
 
                                 <div>
-                                    <Label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>MISSION DESCRIPTION</Label>
+                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>MISSION DESCRIPTION</Label>
                                     <Textarea
                                         placeholder="Describe the purpose, business context, and core objectives..."
                                         style={{
                                             background: 'var(--bg-input)', border: '1px solid var(--border)',
                                             color: 'var(--text-primary)', borderRadius: 10,
-                                            resize: 'none', height: 160, fontSize: '0.88rem',
-                                            padding: '12px 14px', fontFamily: 'inherit', outline: 'none',
+                                            resize: 'none', height: 70, fontSize: '0.82rem',
+                                            padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
                                             width: '100%', lineHeight: 1.6
                                         }}
                                         value={form.description}
@@ -149,92 +151,29 @@ export default function ProjectForm({ initialData, onSubmit, isLoading, title, d
                             </div>
                         </div>
 
-                        {/* Sonar Section */}
+                        {/* Rules Section */}
                         <div style={{
-                            padding: '24px', borderRadius: 20,
-                            background: 'rgba(245,158,11,0.03)',
-                            border: '1px solid rgba(245,158,11,0.15)',
+                            padding: '18px 22px', borderRadius: 18,
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-card)'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                                <ShieldCheck size={16} color="#f59e0b" />
-                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quality Gate: SonarQube</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Sparkles size={14} color="#6366f1" />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Intelligence & Rules</span>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(245,158,11,0.7)', display: 'block', marginBottom: 6 }}>PROJECT KEY</Label>
-                                    <Input
-                                        placeholder="org_project-key"
-                                        style={{
-                                            height: 40, borderRadius: 8,
-                                            background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(245,158,11,0.12)',
-                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                            fontSize: '0.82rem', padding: '0 12px'
-                                        }}
-                                        value={form.sonar_project_key}
-                                        onChange={e => setForm({ ...form, sonar_project_key: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(245,158,11,0.7)', display: 'block', marginBottom: 6 }}>ACCESS TOKEN</Label>
-                                    <Input
-                                        type="password"
-                                        placeholder="squ_..."
-                                        style={{
-                                            height: 40, borderRadius: 8,
-                                            background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(245,158,11,0.12)',
-                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                            fontSize: '0.82rem', padding: '0 12px'
-                                        }}
-                                        value={form.sonar_token}
-                                        onChange={e => setForm({ ...form, sonar_token: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ── RIGHT COLUMN: Repositories & Rules ── */}
-                    <div style={{
-                        padding: '24px', borderRadius: 20,
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: '100%'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                            <Github size={16} color="#6366f1" />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Repositories & Intelligence</span>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
                             <div>
-                                <Label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>GITHUB REPOSITORIES</Label>
-                                <Input
-                                    placeholder="owner/repo1, owner/repo2"
-                                    style={{
-                                        height: 44, borderRadius: 10,
-                                        background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                        color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.85rem', padding: '0 14px'
-                                    }}
-                                    value={form.github_repos}
-                                    onChange={e => setForm({ ...form, github_repos: e.target.value })}
-                                />
-                                <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 6, opacity: 0.7 }}>Comma-separated — e.g. AbhiGaddi/ai-orchestrator</p>
-                            </div>
-
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <Label style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>CODING GUIDELINES & ARCHITECTURAL RULES</Label>
+                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>CODING GUIDELINES & ARCHITECTURAL PREFERENCES</Label>
                                 <Textarea
                                     placeholder="Define specific patterns, preferences, or rules for your AI agents..."
                                     style={{
                                         background: 'var(--bg-input)', border: '1px solid var(--border)',
                                         color: 'var(--text-primary)', borderRadius: 10,
-                                        resize: 'none', flex: 1, minHeight: 180, fontSize: '0.88rem',
-                                        padding: '14px 16px', fontFamily: 'inherit', outline: 'none',
+                                        resize: 'none', height: 110, fontSize: '0.82rem',
+                                        padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
                                         width: '100%', lineHeight: 1.6
                                     }}
                                     value={form.coding_guidelines}
@@ -242,41 +181,125 @@ export default function ProjectForm({ initialData, onSubmit, isLoading, title, d
                                 />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Submit Actions */}
+                    {/* ── RIGHT COLUMN: Integration & Infrastructure ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                        {/* Repos Section */}
                         <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                            gap: 12, marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)'
+                            padding: '18px 22px', borderRadius: 18,
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-card)'
                         }}>
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                style={{
-                                    height: 44, padding: '0 28px', borderRadius: 10,
-                                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                                    border: 'none', color: '#fff', fontSize: '0.9rem',
-                                    fontWeight: 800, cursor: isLoading ? 'not-allowed' : 'pointer',
-                                    boxShadow: '0 8px 16px rgba(168,85,247,0.3)',
-                                    transition: 'all 0.2s',
-                                    opacity: isLoading ? 0.7 : 1,
-                                    display: 'flex', alignItems: 'center', gap: 8
-                                }}
-                                onMouseEnter={e => {
-                                    if (!isLoading) {
-                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                        e.currentTarget.style.boxShadow = '0 10px 20px rgba(168,85,247,0.4)';
-                                    }
-                                }}
-                                onMouseLeave={e => {
-                                    if (!isLoading) {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 8px 16px rgba(168,85,247,0.3)';
-                                    }
-                                }}
-                            >
-                                {submitLabel}
-                                {!isLoading && (isEditing ? <Edit2 size={16} /> : <Sparkles size={16} />)}
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Github size={14} color="var(--text-primary)" />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source Control</span>
+                            </div>
+
+                            <div>
+                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>GITHUB REPOSITORIES</Label>
+                                <Input
+                                    placeholder="owner/repo1, owner/repo2"
+                                    style={{
+                                        height: 40, borderRadius: 10,
+                                        background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                        color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                        fontSize: '0.85rem', padding: '0 14px'
+                                    }}
+                                    value={form.github_repos}
+                                    onChange={e => setForm({ ...form, github_repos: e.target.value })}
+                                />
+                                <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 4, opacity: 0.8 }}>Comma-separated — e.g. AbhiGaddi/ai-orchestrator</p>
+                            </div>
+                        </div>
+
+                        {/* Sonar Section */}
+                        <div style={{
+                            padding: '18px 22px', borderRadius: 18,
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-card)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <ShieldCheck size={14} color="#f59e0b" />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quality Gate: SonarQube</span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <div>
+                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>PROJECT KEY</Label>
+                                    <Input
+                                        placeholder="org_project-key"
+                                        style={{
+                                            height: 40, borderRadius: 10,
+                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                            fontSize: '0.85rem', padding: '0 14px'
+                                        }}
+                                        value={form.sonar_project_key}
+                                        onChange={e => setForm({ ...form, sonar_project_key: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>ACCESS TOKEN</Label>
+                                    <Input
+                                        type="password"
+                                        placeholder="squ_..."
+                                        style={{
+                                            height: 40, borderRadius: 10,
+                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                            fontSize: '0.85rem', padding: '0 14px'
+                                        }}
+                                        value={form.sonar_token}
+                                        onChange={e => setForm({ ...form, sonar_token: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Submit Actions Integrated into the card */}
+                                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        style={{
+                                            height: 44, padding: '0 40px', borderRadius: 12,
+                                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                                            border: 'none', color: '#fff', fontSize: '0.9rem',
+                                            fontWeight: 900, cursor: isLoading ? 'not-allowed' : 'pointer',
+                                            boxShadow: '0 10px 20px rgba(168,85,247,0.3)',
+                                            transition: 'all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                            opacity: isLoading ? 0.7 : 1,
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.04em',
+                                            width: '100%'
+                                        }}
+                                        onMouseEnter={e => {
+                                            if (!isLoading) {
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(168,85,247,0.5)';
+                                            }
+                                        }}
+                                        onMouseLeave={e => {
+                                            if (!isLoading) {
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                e.currentTarget.style.boxShadow = '0 10px 20px rgba(168,85,247,0.3)';
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                            {submitLabel}
+                                            {!isLoading && (isEditing ? <Edit2 size={16} /> : <Sparkles size={16} />)}
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
