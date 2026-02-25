@@ -55,99 +55,102 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
                 transition: 'opacity 0.2s',
             }} />
 
-            {/* Header */}
-            <div style={{ padding: '20px 20px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                    {/* Project icon */}
-                    <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: accent.glow,
-                        border: `1px solid ${accent.color}30`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                    }}>
-                        <FolderOpen size={18} color={accent.color} />
+            {/* Clickable Area */}
+            <Link href={`/projects/${project.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                {/* Header */}
+                <div style={{ padding: '20px 20px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                        {/* Project icon */}
+                        <div style={{
+                            width: 40, height: 40, borderRadius: 10,
+                            background: accent.glow,
+                            border: `1px solid ${accent.color}30`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <FolderOpen size={18} color={accent.color} />
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2, letterSpacing: '-0.02em' }}>
+                                {project.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                                ID: {project.id.slice(0, 8)}…
+                            </div>
+                        </div>
+
+                        {/* Live dot */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '3px 8px',
+                            borderRadius: 999,
+                            background: accent.glow,
+                            border: `1px solid ${accent.color}25`,
+                            flexShrink: 0,
+                        }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: accent.color, display: 'inline-block' }} />
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: accent.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active</span>
+                        </div>
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 2, letterSpacing: '-0.02em' }}>
-                            {project.name}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                            ID: {project.id.slice(0, 8)}…
-                        </div>
-                    </div>
-
-                    {/* Live dot */}
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '3px 8px',
-                        borderRadius: 999,
-                        background: accent.glow,
-                        border: `1px solid ${accent.color}25`,
-                        flexShrink: 0,
+                    {/* Description */}
+                    <p style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--text-muted)',
+                        lineHeight: 1.6,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical' as const,
+                        overflow: 'hidden',
+                        minHeight: 38,
                     }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: accent.color, display: 'inline-block' }} />
-                        <span style={{ fontSize: '0.62rem', fontWeight: 700, color: accent.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active</span>
-                    </div>
+                        {project.description || "No description provided."}
+                    </p>
                 </div>
 
-                {/* Description */}
-                <p style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.6,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical' as const,
-                    overflow: 'hidden',
-                    minHeight: 38,
-                }}>
-                    {project.description || "No description provided."}
-                </p>
-            </div>
-
-            {/* Stat chips */}
-            <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {/* Repos */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid var(--border)',
-                }}>
-                    <Github size={11} color="var(--text-muted)" />
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
-                    </span>
-                </div>
-
-                {/* Guidelines */}
-                {hasGuidelines && (
+                {/* Stat chips */}
+                <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {/* Repos */}
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 5,
                         padding: '4px 10px', borderRadius: 8,
-                        background: 'rgba(16,185,129,0.08)',
-                        border: '1px solid rgba(16,185,129,0.2)',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid var(--border)',
                     }}>
-                        <BookOpen size={11} color="#10b981" />
-                        <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Guidelines</span>
+                        <Github size={11} color="var(--text-muted)" />
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+                        </span>
                     </div>
-                )}
 
-                {/* SonarQube */}
-                {hasSonar && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '4px 10px', borderRadius: 8,
-                        background: 'rgba(245,158,11,0.08)',
-                        border: '1px solid rgba(245,158,11,0.2)',
-                    }}>
-                        <ShieldCheck size={11} color="#f59e0b" />
-                        <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 600 }}>Sonar</span>
-                    </div>
-                )}
-            </div>
+                    {/* Guidelines */}
+                    {hasGuidelines && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '4px 10px', borderRadius: 8,
+                            background: 'rgba(16,185,129,0.08)',
+                            border: '1px solid rgba(168,85,247,0.2)', // Modified to purple border slightly to match visual or keep green
+                        }}>
+                            <BookOpen size={11} color="#10b981" />
+                            <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>Guidelines</span>
+                        </div>
+                    )}
+
+                    {/* SonarQube */}
+                    {hasSonar && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '4px 10px', borderRadius: 8,
+                            background: 'rgba(245,158,11,0.08)',
+                            border: '1px solid rgba(245,158,11,0.2)',
+                        }}>
+                            <ShieldCheck size={11} color="#f59e0b" />
+                            <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 600 }}>Sonar</span>
+                        </div>
+                    )}
+                </div>
+            </Link>
 
             {/* Divider */}
             <div style={{ height: 1, background: 'var(--border)', margin: '0 20px' }} />

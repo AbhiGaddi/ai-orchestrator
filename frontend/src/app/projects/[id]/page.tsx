@@ -253,23 +253,24 @@ export default function ProjectDashboardPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 10,
-                                padding: '4px 12px',
-                                background: 'rgba(16,185,129,0.08)',
-                                border: '1px solid rgba(16,185,129,0.2)',
-                                borderRadius: 10,
-                                boxShadow: '0 0 20px rgba(16,185,129,0.03)'
+                                padding: '6px 14px',
+                                background: 'rgba(16,185,129,0.12)',
+                                border: '1px solid rgba(16,185,129,0.3)',
+                                borderRadius: 12,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                marginTop: '-12px' // Nudged upwards
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                    <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>System Health</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{healthScore}%</span>
+                                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Project Health</span>
+                                    <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{healthScore}%</span>
                                 </div>
                                 <div style={{
-                                    width: 28, height: 28,
-                                    background: 'rgba(16,185,129,0.15)',
-                                    borderRadius: 8,
+                                    width: 32, height: 32,
+                                    background: 'rgba(16,185,129,0.2)',
+                                    borderRadius: 10,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                                 }}>
-                                    <Zap size={14} color="var(--green)" fill="var(--green)" style={{ filter: 'drop-shadow(0 0 4px var(--green))' }} />
+                                    <Zap size={16} color="var(--green)" fill="var(--green)" style={{ filter: 'drop-shadow(0 0 4px var(--green))' }} />
                                 </div>
                             </div>
 
@@ -404,7 +405,7 @@ export default function ProjectDashboardPage() {
                                         marginBottom: '-1px'
                                     }}
                                 >
-                                    <Bug size={14} /> Health Check
+                                    <Bug size={14} /> Sonar Health Check
                                     <span style={{ fontSize: '9px', opacity: 0.6, background: 'var(--accent-glow)', color: 'var(--accent)', padding: '1px 6px', borderRadius: 8 }}>{sonarIssues.length}</span>
                                 </button>
                             )}
@@ -414,7 +415,7 @@ export default function ProjectDashboardPage() {
                             {activeMainTab === 'OVERVIEW' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                                     {/* Stats Cards - High Visibility */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                                         <div className="card" style={{ padding: '12px', background: 'linear-gradient(135deg, rgba(168,85,247,0.05), transparent)', borderLeft: '3px solid var(--accent)' }}>
                                             <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Tasks</div>
                                             <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{tasks.length}</div>
@@ -427,83 +428,18 @@ export default function ProjectDashboardPage() {
                                             <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Issues</div>
                                             <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{project.sonar_metrics?.vulnerabilities || 0}</div>
                                         </div>
-                                        <div className="card" style={{ padding: '12px', background: 'linear-gradient(135deg, rgba(59,130,246,0.05), transparent)', borderLeft: '3px solid var(--blue)' }}>
-                                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Uptime</div>
-                                            <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>99.9%</div>
-                                        </div>
-                                        <div className="card" style={{ padding: '12px', background: 'linear-gradient(135deg, rgba(168,85,247,0.05), transparent)', borderLeft: '3px solid var(--accent)' }}>
-                                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Avg. Fix</div>
-                                            <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>4.2m</div>
-                                        </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 20 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
                                         {/* Guidelines Section in Overview */}
                                         <section>
                                             <h2 style={{ fontSize: '0.9rem', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}>
                                                 <Layers size={16} color="var(--accent)" /> Architecture Rules
                                             </h2>
                                             <div className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)' }}>
-                                                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+                                                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
                                                     {project.coding_guidelines || "System boundary guidelines are inherited from project context."}
                                                 </p>
-                                            </div>
-                                        </section>
-
-                                        {/* Simplified Repositories Section */}
-                                        <section>
-                                            <h2 style={{ fontSize: '0.9rem', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}>
-                                                <Github size={16} color="var(--blue)" /> Source Code
-                                            </h2>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                {project.github_repos?.length > 0 ? (
-                                                    project.github_repos.map((repo) => (
-                                                        <div key={repo} style={{
-                                                            background: 'rgba(59,130,246,0.03)',
-                                                            border: '1px solid rgba(59,130,246,0.1)',
-                                                            borderRadius: 8,
-                                                            padding: '8px 12px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'space-between',
-                                                            transition: 'all 0.2s'
-                                                        }} className="hover:border-blue-500/40 group">
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
-                                                                <Github size={12} className="text-blue-400 shrink-0" />
-                                                                <span style={{
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: 800,
-                                                                    color: 'var(--text-primary)',
-                                                                    whiteSpace: 'nowrap',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis'
-                                                                }}>
-                                                                    {repo}
-                                                                </span>
-                                                            </div>
-                                                            <a
-                                                                href={`https://github.com/${repo}`}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                style={{
-                                                                    color: 'var(--blue)',
-                                                                    fontSize: '0.62rem',
-                                                                    fontWeight: 900,
-                                                                    textDecoration: 'none',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: 3,
-                                                                    letterSpacing: '0.05em'
-                                                                }}
-                                                                className="hover:text-white transition-colors"
-                                                            >
-                                                                VIEW <ExternalLink size={10} />
-                                                            </a>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div style={{ padding: 12, textAlign: 'center', opacity: 0.3, fontSize: '0.65rem' }}>No modules connected.</div>
-                                                )}
                                             </div>
                                         </section>
                                     </div>
@@ -543,23 +479,62 @@ export default function ProjectDashboardPage() {
                     <aside style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
                         <SonarSidebarCard project={project} />
 
-                        <div className="card" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>System Status</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>API Gateway</span>
-                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Workflow Engine</span>
-                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>AI Agent Pool</span>
-                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                                </div>
+                        {/* Simplified Repositories Section */}
+                        <section>
+                            <h2 style={{ fontSize: '0.9rem', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}>
+                                <Github size={16} color="var(--blue)" /> Source Code
+                            </h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {project.github_repos?.length > 0 ? (
+                                    project.github_repos.map((repo) => (
+                                        <div key={repo} style={{
+                                            background: 'rgba(59,130,246,0.03)',
+                                            border: '1px solid rgba(59,130,246,0.1)',
+                                            borderRadius: 8,
+                                            padding: '8px 12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            transition: 'all 0.2s'
+                                        }} className="hover:border-blue-500/40 group">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                                                <Github size={12} className="text-blue-400 shrink-0" />
+                                                <span style={{
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 800,
+                                                    color: 'var(--text-primary)',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {repo}
+                                                </span>
+                                            </div>
+                                            <a
+                                                href={`https://github.com/${repo}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                style={{
+                                                    color: 'var(--blue)',
+                                                    fontSize: '0.62rem',
+                                                    fontWeight: 900,
+                                                    textDecoration: 'none',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 3,
+                                                    letterSpacing: '0.05em'
+                                                }}
+                                                className="hover:text-white transition-colors"
+                                            >
+                                                VIEW <ExternalLink size={10} />
+                                            </a>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ padding: 12, textAlign: 'center', opacity: 0.3, fontSize: '0.65rem' }}>No modules connected.</div>
+                                )}
                             </div>
-                        </div>
+                        </section>
                     </aside>
                 </div>
             </div>
@@ -643,7 +618,7 @@ function SonarHealthSection({
         <section style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}>
-                    <Bug size={16} color="var(--red)" /> Health Violations
+                    <Bug size={16} color="var(--red)" /> Sonar Health Violations
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button
