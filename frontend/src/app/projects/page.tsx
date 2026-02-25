@@ -236,29 +236,52 @@ export default function ProjectsPage() {
         content = (
             <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                padding: '100px 40px',
-                border: '1.5px dashed var(--border)', borderRadius: 24,
-                background: 'var(--bg-surface)',
+                padding: '80px 40px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 24,
+                boxShadow: 'var(--shadow-card)',
+                marginTop: -12, // Pull closer to header
             }}>
-                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                    <FolderOpen size={30} color="#a855f7" />
+                <div style={{
+                    width: 72, height: 72, borderRadius: 20,
+                    background: 'rgba(168,85,247,0.1)',
+                    border: '1px solid rgba(168,85,247,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: 24,
+                    boxShadow: '0 0 40px rgba(168,85,247,0.15)'
+                }}>
+                    <FolderOpen size={32} color="#a855f7" />
                 </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 10, color: 'var(--text-primary)' }}>No active projects</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', textAlign: 'center', maxWidth: 400, marginBottom: 32, lineHeight: 1.7 }}>
-                    Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks.
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 12, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    No Active Projects
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', textAlign: 'center', maxWidth: 460, marginBottom: 36, lineHeight: 1.7 }}>
+                    Your AI agents need a project context to operate. Initialize your first workspace to start extracting and executing tasks with full automation.
                 </p>
                 <Link href="/projects/new">
                     <button
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none', color: '#fff', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(168,85,247,0.35)' }}
+                        className="btn"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '14px 40px', borderRadius: 14,
+                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                            border: 'none', color: '#fff',
+                            fontSize: '1rem', fontWeight: 800,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            boxShadow: '0 8px 32px rgba(168,85,247,0.3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                        }}
                     >
-                        <Plus size={20} /> Initialize Workspace
+                        <Plus size={20} /> Initialize Project
                     </button>
                 </Link>
             </div>
         );
     } else {
         content = (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 24 }}>
                 {projects.map((project, i) => (
                     <ProjectCard key={project.id} project={project} index={i} />
                 ))}
@@ -272,7 +295,11 @@ export default function ProjectsPage() {
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: 44, paddingBottom: 80, maxWidth: 1600, padding: '0 80px' }}>
+            <div className="container" style={{
+                position: 'relative', zIndex: 1,
+                paddingTop: 44, paddingBottom: 80,
+                maxWidth: 1600, padding: '0 60px' // Slightly adjusted padding
+            }}>
 
                 {/* ── Page Header: Unified Hero ── */}
                 <div style={{
@@ -280,9 +307,9 @@ export default function ProjectsPage() {
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
                     gap: 40,
                     alignItems: 'center',
-                    marginBottom: 48,
+                    marginBottom: 40,
                     background: 'var(--bg-card)',
-                    padding: '32px 40px',
+                    padding: '36px 48px',
                     borderRadius: 24,
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-card)',

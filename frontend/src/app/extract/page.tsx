@@ -49,7 +49,6 @@ export default function ExtractPage() {
     const [projectId, setProjectId] = useState<string | undefined>("none");
     const [githubRepo, setGithubRepo] = useState('');
     const [projects, setProjects] = useState<Project[]>([]);
-    const [dragOver, setDragOver] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const fileRef = useRef<HTMLInputElement>(null);
@@ -86,11 +85,6 @@ export default function ExtractPage() {
         reader.readAsText(file);
     }
 
-    function onDrop(e: React.DragEvent) {
-        e.preventDefault(); setDragOver(false);
-        const file = e.dataTransfer.files[0];
-        if (file) handleFile(file);
-    }
 
     return (
         <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
@@ -99,20 +93,20 @@ export default function ExtractPage() {
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px' }}>
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 60px' }}>
                 {/* ── Page header ── */}
-                <div style={{ padding: '48px 0 36px' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 12px', borderRadius: 999, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', marginBottom: 18 }}>
-                        <Zap size={12} color="#818cf8" />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#818cf8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>AI Task Extraction</span>
+                <div style={{ padding: '20px 0 8px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', marginBottom: 12 }}>
+                        <Zap size={10} color="#818cf8" />
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#818cf8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>AI Task Extraction</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                         <div>
-                            <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 8, color: 'var(--text-primary)' }}>
+                            <h1 style={{ fontSize: 'clamp(1.3rem, 2.5vw, 1.8rem)', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 6, color: 'var(--text-primary)' }}>
                                 Turn discussions into tasks
                             </h1>
-                            <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', maxWidth: 500, lineHeight: 1.7 }}>
-                                Paste any meeting transcript or Slack thread — the AI extracts structured, actionable tasks automatically.
+                            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', maxWidth: 600, lineHeight: 1.5 }}>
+                                Paste a transcript or discussion thread to extract tasks.
                             </p>
                         </div>
                         <button
@@ -130,20 +124,67 @@ export default function ExtractPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start', paddingBottom: 80 }}>
 
                     {/* ── Left: Input panel ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                        {/* ── Context configuration (Now above the editor) ── */}
+                        <div style={{
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 16,
+                            padding: '10px 18px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: 16,
+                            boxShadow: 'var(--shadow-card)',
+                        }}>
+                            <div>
+                                <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                                    <Sparkles size={10} color="var(--accent)" /> Target Project
+                                </label>
+                                <Select value={projectId} onValueChange={setProjectId}>
+                                    <SelectTrigger className="w-full bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-primary)] h-9 hover:border-[var(--accent)] transition-all text-xs font-bold">
+                                        <SelectValue placeholder="No project (global)" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-primary)] shadow-2xl">
+                                        <SelectItem value="none" className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)] text-sm font-medium">
+                                            No Project (Global)
+                                        </SelectItem>
+                                        {projects.map(p => (
+                                            <SelectItem key={p.id} value={p.id} className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)] text-sm font-medium">
+                                                {p.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                                    <Github size={10} color="var(--blue)" /> Repository
+                                </label>
+                                <input
+                                    className="form-input"
+                                    style={{ height: 36, fontSize: '0.8rem', fontWeight: 600, border: '1px solid var(--border)' }}
+                                    placeholder="owner/repo-name"
+                                    value={githubRepo}
+                                    onChange={e => setGithubRepo(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
                         <div style={{
                             background: 'var(--bg-card)',
                             border: '1px solid var(--border)',
                             borderRadius: 16,
                             overflow: 'hidden',
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+                            boxShadow: 'var(--shadow-card)',
                         }}>
                             {/* Card Header bar */}
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                padding: '14px 20px',
+                                padding: '10px 16px',
                                 borderBottom: '1px solid var(--border)',
                                 background: 'rgba(255,255,255,0.02)',
                             }}>
@@ -153,21 +194,24 @@ export default function ExtractPage() {
                                             <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.7 }} />
                                         ))}
                                     </div>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginLeft: 4 }}>
-                                        transcript_input.txt
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, fontFamily: 'var(--font-mono)', marginLeft: 4 }}>
+                                        transcript_editor.txt
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    {text && (
-                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                                            {text.length.toLocaleString()} chars
-                                        </span>
-                                    )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <input ref={fileRef} type="file" accept=".txt,.md" hidden onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+                                    <button
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => fileRef.current?.click()}
+                                        style={{ padding: '4px 10px', fontSize: '0.7rem', gap: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}
+                                    >
+                                        <Upload size={12} /> Upload
+                                    </button>
                                     {text && (
                                         <button
                                             className="btn btn-ghost btn-sm"
                                             onClick={() => setText('')}
-                                            style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                                            style={{ padding: '3px 8px', fontSize: '0.72rem', color: '#ef4444' }}
                                         >
                                             <X size={11} /> Clear
                                         </button>
@@ -175,141 +219,109 @@ export default function ExtractPage() {
                                 </div>
                             </div>
 
-                            {/* Drop zone (only when empty) */}
-                            {!text && (
-                                <div
-                                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                                    onDragLeave={() => setDragOver(false)}
-                                    onDrop={onDrop}
-                                    onClick={() => fileRef.current?.click()}
-                                    style={{
-                                        padding: '52px 40px',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease',
-                                        background: dragOver ? 'rgba(99,102,241,0.06)' : 'transparent',
-                                        borderBottom: '1px solid var(--border)',
-                                    }}
-                                >
-                                    <input ref={fileRef} type="file" accept=".txt,.md" hidden onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-                                    <div style={{
-                                        width: 56, height: 56,
-                                        borderRadius: 14,
-                                        background: 'rgba(99,102,241,0.1)',
-                                        border: `1px solid ${dragOver ? 'rgba(99,102,241,0.6)' : 'rgba(99,102,241,0.2)'}`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        margin: '0 auto 16px',
-                                        transition: 'all 0.15s ease',
-                                    }}>
-                                        <Upload size={22} color={dragOver ? 'var(--accent-light)' : 'rgba(129,140,248,0.6)'} />
-                                    </div>
-                                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: 6 }}>
-                                        Drop a file or click to upload
-                                    </div>
-                                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                                        Supports .txt and .md — or paste text in the editor below
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Textarea */}
                             <textarea
                                 value={text}
                                 onChange={e => setText(e.target.value)}
                                 placeholder={"# Paste your meeting transcript here\n\nAlice: The API is timing out on large datasets...\nBob: Let's prioritize that for next sprint."}
-                                rows={text ? 20 : 6}
                                 style={{
                                     width: '100%',
+                                    height: '30vh',
+                                    minHeight: '180px',
                                     background: 'transparent',
                                     border: 'none',
                                     outline: 'none',
                                     resize: 'none',
-                                    padding: '18px 20px',
+                                    padding: '12px 16px',
                                     color: text ? 'var(--text-primary)' : 'var(--text-muted)',
                                     fontFamily: "'JetBrains Mono', monospace",
-                                    fontSize: '0.83rem',
-                                    lineHeight: 1.85,
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.7,
                                     display: 'block',
                                 }}
                             />
                         </div>
 
-                        {/* ── Context configuration ── */}
-                        <div style={{
-                            marginTop: 16,
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 14,
-                            padding: '18px 20px',
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: 16,
-                        }}>
-                            {/* Project selector */}
-                            <div>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-                                    <Sparkles size={11} /> Target Project
-                                </label>
-                                <Select value={projectId} onValueChange={setProjectId}>
-                                    <SelectTrigger className="w-full bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-primary)] h-10 hover:border-[var(--accent)] transition-all text-sm">
-                                        <SelectValue placeholder="No project (global)" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-primary)]">
-                                        <SelectItem value="none" className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)] text-sm">
-                                            No Project (Global)
-                                        </SelectItem>
-                                        {projects.map(p => (
-                                            <SelectItem key={p.id} value={p.id} className="focus:bg-[var(--accent-glow)] focus:text-[var(--accent-light)] text-sm">
-                                                {p.name}
-                                            </SelectItem>
+                        {/* ── CTA button (Now below the editor) ── */}
+                        {(() => {
+                            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                            const isMinLength = words >= 5;
+                            const isDisabled = loading || !isMinLength;
+
+                            return (
+                                <div style={{ position: 'relative' }}>
+                                    {/* Compact Stats Bar */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(4, 1fr)',
+                                        gap: 8,
+                                        marginBottom: 10,
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 10,
+                                        padding: '8px 12px',
+                                    }}>
+                                        {[
+                                            { label: 'Chars', value: text.length.toLocaleString() },
+                                            { label: 'Words', value: text.trim() ? text.trim().split(/\s+/).length.toLocaleString() : '0' },
+                                            { label: 'Lines', value: text.trim() ? text.split('\n').length.toLocaleString() : '0' },
+                                            { label: 'Tokens', value: text.trim() ? Math.round(text.length / 4).toLocaleString() : '0' },
+                                        ].map(s => (
+                                            <div key={s.label} style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700, marginBottom: 1 }}>{s.label}</div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: text ? 'var(--accent-light)' : 'var(--text-muted)' }}>{s.value}</div>
+                                            </div>
                                         ))}
-                                    </SelectContent>
-                                </Select>
-                                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 5 }}>
-                                    Injects coding guidelines & architecture context
-                                </p>
-                            </div>
+                                    </div>
 
-                            {/* Repo override */}
-                            <div>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-                                    <Github size={11} /> Repository Override
-                                </label>
-                                <input
-                                    className="form-input"
-                                    style={{ height: 40, fontSize: '0.83rem' }}
-                                    placeholder="owner/repo-name"
-                                    value={githubRepo}
-                                    onChange={e => setGithubRepo(e.target.value)}
-                                />
-                                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 5 }}>
-                                    Overrides the project's default repository
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* ── CTA button ── */}
-                        <button
-                            className="btn btn-primary"
-                            onClick={handleExtract}
-                            disabled={loading || !text.trim()}
-                            style={{
-                                marginTop: 14,
-                                padding: '14px 28px',
-                                fontSize: '0.95rem',
-                                fontWeight: 700,
-                                alignSelf: 'flex-start',
-                                borderRadius: 12,
-                                background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-                                boxShadow: loading || !text.trim() ? 'none' : '0 0 0 0 rgba(99,102,241,0.4)',
-                                animation: loading || !text.trim() ? 'none' : 'pulse-glow 2.5s infinite',
-                            }}
-                        >
-                            {loading
-                                ? <><span className="spinner" /> Extracting tasks…</>
-                                : <><Sparkles size={17} /> Extract Tasks <ArrowRight size={15} /></>
-                            }
-                        </button>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleExtract}
+                                        disabled={isDisabled}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 0',
+                                            fontSize: '0.88rem',
+                                            fontWeight: 900,
+                                            borderRadius: 10,
+                                            background: isDisabled
+                                                ? 'rgba(168, 85, 247, 0.15)'
+                                                : 'linear-gradient(135deg, #a855f7, #6366f1)',
+                                            border: `2px solid ${isDisabled ? 'rgba(168, 85, 247, 0.25)' : 'transparent'}`,
+                                            color: isDisabled ? 'var(--text-secondary)' : '#fff',
+                                            boxShadow: isDisabled
+                                                ? 'none'
+                                                : '0 12px 28px rgba(168,85,247,0.3)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 12,
+                                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                            opacity: 1,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.03em',
+                                            marginTop: 6,
+                                        }}
+                                    >
+                                        {loading ? (
+                                            <><span className="spinner" style={{ width: 16, height: 16 }} /> Extracting…</>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={18} />
+                                                EXTRACT ACTIONABLE TASKS
+                                                <ArrowRight size={16} />
+                                            </>
+                                        )}
+                                    </button>
+                                    {!isMinLength && text.trim().length > 0 && (
+                                        <div style={{ textAlign: 'right', marginTop: 6, fontSize: '0.65rem', color: 'var(--red)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            Min. 5 words required ({words}/5)
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* ── Right: Sidebar ── */}
@@ -347,52 +359,7 @@ export default function ExtractPage() {
                             </div>
                         </div>
 
-                        {/* Tips card */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.06))',
-                            border: '1px solid rgba(99,102,241,0.2)',
-                            borderRadius: 14,
-                            padding: '14px 16px',
-                        }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-light)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Brain size={13} /> Pro Tips
-                            </div>
-                            {[
-                                'Include speaker names for better task attribution',
-                                'Mention deadlines and priorities explicitly',
-                                'Slack threads work just as well as meeting notes',
-                            ].map((tip, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 7, marginBottom: i < 2 ? 8 : 0, alignItems: 'flex-start' }}>
-                                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-light)', marginTop: 6, flexShrink: 0, opacity: 0.7 }} />
-                                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{tip}</span>
-                                </div>
-                            ))}
-                        </div>
 
-                        {/* Stats card */}
-                        <div style={{
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 14,
-                            padding: '14px 16px',
-                        }}>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 12 }}>
-                                Input stats
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                {[
-                                    { label: 'Characters', value: text.length.toLocaleString() },
-                                    { label: 'Words', value: text.trim() ? text.trim().split(/\s+/).length.toLocaleString() : '0' },
-                                    { label: 'Lines', value: text.trim() ? text.split('\n').length.toLocaleString() : '0' },
-                                    { label: 'Est. tokens', value: text.trim() ? Math.round(text.length / 4).toLocaleString() : '0' },
-                                ].map(s => (
-                                    <div key={s.label} style={{ background: 'var(--bg-base)', borderRadius: 8, padding: '8px 10px' }}>
-                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: 2 }}>{s.label}</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: text ? 'var(--accent-light)' : 'var(--text-muted)' }}>{s.value}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -403,6 +370,6 @@ export default function ExtractPage() {
                     50% { box-shadow: 0 0 0 6px rgba(99,102,241,0), 0 4px 20px rgba(99,102,241,0.5); }
                 }
             `}</style>
-        </div>
+        </div >
     );
 }
