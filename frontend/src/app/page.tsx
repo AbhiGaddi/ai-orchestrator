@@ -86,7 +86,7 @@ const phases = [
 
 function PipelinePhases() {
     return (
-        <section style={{ paddingBottom: 100, paddingTop: 40, maxWidth: 1600, padding: '0 80px', margin: '0 auto', width: '100%' }}>
+        <section style={{ paddingBottom: 100, paddingTop: 40, maxWidth: 1600, padding: '0 24px', margin: '0 auto', width: '100%' }}>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
                 <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>Multi-Phase Pipeline</h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>Each phase plugs in cleanly — no rewrites, just new agents.</p>
@@ -218,7 +218,7 @@ export default function HomePage() {
             <div className="glow-blob glow-blob-2" />
 
             {/* UP ZONE: Hero (Flexible) */}
-            <section style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 80px', maxWidth: 1600, width: '100%', margin: '0 auto' }}>
+            <section style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 24px', maxWidth: 1600, width: '100%', margin: '0 auto' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 100, width: '100%', alignItems: 'center' }}>
 
                     <div>
@@ -280,7 +280,7 @@ export default function HomePage() {
             </section>
 
             {/* DOWN ZONE: Core (Flexible) */}
-            <section style={{ flex: 0.8, display: 'flex', flexDirection: 'column', padding: '0 80px 60px', maxWidth: 1600, width: '100%', margin: '0 auto' }}>
+            <section style={{ flex: 0.8, display: 'flex', flexDirection: 'column', padding: '0 24px 60px', maxWidth: 1600, width: '100%', margin: '0 auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         <div style={{ width: 18, height: 18, borderRadius: 4, background: 'linear-gradient(135deg, #a855f7, #6366f1)', boxShadow: '0 0 15px rgba(168,85,247,0.5)' }} />

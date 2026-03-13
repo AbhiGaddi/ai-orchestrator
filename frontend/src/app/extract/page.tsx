@@ -67,7 +67,6 @@ export default function ExtractPage() {
             const result = await extractTasks(
                 text.trim(),
                 projectId === "none" ? undefined : projectId,
-                githubRepo.trim() || undefined
             );
             toast('success', `Extracted ${result.count} task${result.count !== 1 ? 's' : ''} successfully!`);
             setTimeout(() => router.push('/tasks'), 800);
@@ -93,7 +92,7 @@ export default function ExtractPage() {
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 60px' }}>
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 24px' }}>
                 {/* ── Page header ── */}
                 <div style={{ padding: '20px 0 8px' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', marginBottom: 12 }}>

@@ -35,7 +35,7 @@ type StageStatus = 'idle' | 'running' | 'failed' | 'done' | 'partial' | 'planned
 
 function getStageStatus(agentKey: string, runs: AgentRun[], live: boolean): StageStatus {
     if (!live) return 'planned';
-    const stageRuns = runs.filter(r => r.agent_name === agentKey);
+    const stageRuns = runs.filter(r => r.agent_type === agentKey);
     if (!stageRuns.length) return 'idle';
     if (stageRuns.some(r => r.status === 'RUNNING')) return 'running';
     if (stageRuns.some(r => r.status === 'FAILED')) return 'failed';
@@ -47,13 +47,13 @@ function getStageStatus(agentKey: string, runs: AgentRun[], live: boolean): Stag
 function PipelineStepper({ runs }: { runs: AgentRun[] }) {
     const stages = PIPELINE_STAGES.map(s => ({
         ...s,
-        stageRuns: runs.filter(r => r.agent_name === s.key),
+        stageRuns: runs.filter(r => r.agent_type === s.key),
         status: getStageStatus(s.key, runs, s.live),
     }));
 
     const circleStyles: Record<StageStatus, React.CSSProperties> = {
         idle: { border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)' },
-        planned: { border: '1.5px dashed rgba(99,102,241,0.25)', background: 'transparent', color: 'rgba(99,102,241,0.35)' },
+        planned: { border: '1.5px dashed rgba(99,102,241,0.4)', background: 'transparent', color: 'rgba(99,102,241,0.6)' },
         running: { border: '2px solid var(--sky)', background: 'var(--sky-dim)', color: 'var(--sky)' },
         failed: { border: '2px solid var(--red)', background: 'var(--red-dim)', color: 'var(--red)' },
         done: { border: '2px solid var(--green)', background: 'var(--green-dim)', color: 'var(--green)' },
@@ -62,7 +62,7 @@ function PipelineStepper({ runs }: { runs: AgentRun[] }) {
 
     const labelColor: Record<StageStatus, string> = {
         idle: 'var(--text-muted)',
-        planned: 'rgba(99,102,241,0.35)',
+        planned: 'rgba(99,102,241,0.6)',
         running: 'var(--sky)',
         failed: 'var(--red)',
         done: 'var(--green)',
@@ -166,7 +166,7 @@ function PipelineStepper({ runs }: { runs: AgentRun[] }) {
 // ─── Agent Run Row ─────────────────────────────────────────────────────────
 function RunItem({ run, taskTitle }: { run: AgentRun; taskTitle?: string }) {
     const [expanded, setExpanded] = useState(false);
-    const color = AGENT_COLORS[run.agent_name] ?? '#94a3b8';
+    const color = AGENT_COLORS[run.agent_type] ?? '#94a3b8';
 
     function duration(start: string | null, end: string | null): string {
         if (!start) return '—';
@@ -205,7 +205,7 @@ function RunItem({ run, taskTitle }: { run: AgentRun; taskTitle?: string }) {
                     {run.status === 'RUNNING' && (
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, animation: 'pulse 1.2s infinite', display: 'inline-block' }} />
                     )}
-                    {run.agent_name.replace('Agent', '')}
+                    {run.agent_type.replace('Agent', '')}
                 </div>
 
                 {/* Task title */}
@@ -214,7 +214,7 @@ function RunItem({ run, taskTitle }: { run: AgentRun; taskTitle?: string }) {
                         {taskTitle ?? `Task ${run.task_id.slice(0, 8)}`}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>
-                        {formatTime(run.started_at)} · {duration(run.started_at, run.completed_at)}
+                        {formatTime(run.created_at)} · {duration(run.created_at, run.updated_at)}
                     </div>
                 </div>
 
@@ -234,7 +234,7 @@ function RunItem({ run, taskTitle }: { run: AgentRun; taskTitle?: string }) {
             {expanded && (
                 <div className="run-item-expanded">
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        {run.error_message && (
+                        {run.error && (
                             <div style={{
                                 gridColumn: '1/-1',
                                 background: 'var(--red-dim)',
@@ -243,18 +243,18 @@ function RunItem({ run, taskTitle }: { run: AgentRun; taskTitle?: string }) {
                                 padding: '10px 14px',
                             }}>
                                 <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--red)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Error</div>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--red)', fontFamily: 'JetBrains Mono, monospace' }}>{run.error_message}</div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--red)', fontFamily: 'JetBrains Mono, monospace' }}>{run.error}</div>
                             </div>
                         )}
                         {run.output && (
-                            <div className="console-panel" style={{ gridColumn: run.error_message ? '1/-1' : undefined }}>
+                            <div className="console-panel" style={{ gridColumn: run.error ? '1/-1' : undefined }}>
                                 <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Output</div>
                                 <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.75rem' }}>
                                     {JSON.stringify(run.output, null, 2)}
                                 </pre>
                             </div>
                         )}
-                        {!run.output && !run.error_message && (
+                        {!run.output && !run.error && (
                             <div style={{ gridColumn: '1/-1', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                 No output captured for this run.
                             </div>
@@ -303,9 +303,9 @@ function SystemSidebar({ runs }: { runs: AgentRun[] }) {
                 </div>
                 <div style={{ padding: '8px 0' }}>
                     {phases.map(phase => {
-                        const hasRunning = phase.agents.some(a => runs.some(r => r.agent_name === a && r.status === 'RUNNING'));
-                        const hasFailed = phase.agents.some(a => runs.some(r => r.agent_name === a && r.status === 'FAILED'));
-                        const hasAny = phase.agents.some(a => runs.some(r => r.agent_name === a));
+                        const hasRunning = phase.agents.some(a => runs.some(r => r.agent_type === a && r.status === 'RUNNING'));
+                        const hasFailed = phase.agents.some(a => runs.some(r => r.agent_type === a && r.status === 'FAILED'));
+                        const hasAny = phase.agents.some(a => runs.some(r => r.agent_type === a));
 
                         const dot = !phase.live ? 'var(--text-muted)'
                             : hasRunning ? 'var(--sky)'
@@ -363,7 +363,7 @@ function SystemSidebar({ runs }: { runs: AgentRun[] }) {
                         </span>
                     </div>
                     <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {[...new Set(runs.filter(r => r.status === 'RUNNING').map(r => r.agent_name))].map(a => (
+                        {[...new Set(runs.filter(r => r.status === 'RUNNING').map(r => r.agent_type))].map(a => (
                             <div key={a} className="agent-chip" style={{
                                 color: AGENT_COLORS[a] ?? 'var(--accent-light)',
                                 borderColor: `${AGENT_COLORS[a] ?? '#6366f1'}30`,
@@ -386,7 +386,7 @@ function SystemSidebar({ runs }: { runs: AgentRun[] }) {
                 </div>
                 <div style={{ padding: '8px 0' }}>
                     {PIPELINE_STAGES.filter(s => s.live).map(stage => {
-                        const agentRuns = runs.filter(r => r.agent_name === stage.key);
+                        const agentRuns = runs.filter(r => r.agent_type === stage.key);
                         const completed = agentRuns.filter(r => r.status === 'COMPLETED').length;
                         const failed = agentRuns.filter(r => r.status === 'FAILED').length;
                         const color = AGENT_COLORS[stage.key] ?? '#94a3b8';
@@ -458,7 +458,7 @@ export default function DashboardPage() {
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px' }}>
+            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 24px' }}>
                 {/* ── Page header ── */}
                 <div className="page-header">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Project } from "@/types";
+import { ipc } from "@/lib/ipc";
 import {
-    FolderOpen, Github, ShieldCheck,
-    ChevronLeft, Sparkles, Plus, Edit2
+    FolderOpen, Sparkles, Plus, Edit2, ChevronLeft, FolderSearch,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 
 interface ProjectFormProps {
     initialData?: Partial<Project>;
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: Partial<Project>) => Promise<void>;
     isLoading?: boolean;
     title: string;
     description: string;
@@ -22,286 +22,206 @@ interface ProjectFormProps {
 export default function ProjectForm({ initialData, onSubmit, isLoading, title, description }: ProjectFormProps) {
     const router = useRouter();
     const [form, setForm] = useState({
-        name: initialData?.name || "",
-        description: initialData?.description || "",
-        github_repos: (initialData?.github_repos || []).join(", "),
-        coding_guidelines: initialData?.coding_guidelines || "",
-        sonar_project_key: initialData?.sonar_project_key || "",
-        sonar_token: initialData?.sonar_token || "",
+        name: initialData?.name ?? "",
+        description: initialData?.description ?? "",
+        local_path: initialData?.local_path ?? "",
+        coding_guidelines: initialData?.coding_guidelines ?? "",
     });
+
+    const handleBrowse = async () => {
+        const dir = await ipc.utils.selectDirectory();
+        if (dir) setForm(f => ({ ...f, local_path: dir }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = {
-            ...form,
-            github_repos: form.github_repos.split(",").map(s => s.trim()).filter(Boolean),
-            services_context: initialData?.services_context || {},
-        };
-        await onSubmit(payload);
+        await onSubmit({
+            name: form.name.trim(),
+            description: form.description.trim() || undefined,
+            local_path: form.local_path.trim(),
+            coding_guidelines: form.coding_guidelines.trim() || undefined,
+        });
     };
 
     const isEditing = !!initialData?.id;
-    const submitLabel = isLoading ? 'Processing...' : (isEditing ? 'Save Changes' : 'Initialize Project');
+    const submitLabel = isLoading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Project');
 
     return (
         <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)' }}>
             <div className="glow-blob glow-blob-1" />
             <div className="glow-blob glow-blob-2" />
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1600, padding: '0 80px', paddingBottom: 40, paddingTop: 20 }}>
-                {/* Header / Back navigation */}
-                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', padding: '32px 24px 80px' }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         <div style={{
-                            width: 44, height: 44, borderRadius: 12,
-                            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                            width: 42, height: 42, borderRadius: 12,
+                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             boxShadow: '0 8px 16px rgba(168,85,247,0.25)',
-                            flexShrink: 0
                         }}>
-                            {isEditing ? <Edit2 size={20} color="white" /> : <Plus size={22} color="white" />}
+                            {isEditing ? <Edit2 size={18} color="white" /> : <Plus size={20} color="white" />}
                         </div>
                         <div>
-                            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 2 }}>
+                            <h1 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 2 }}>
                                 {title}
                             </h1>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                                {description}
-                            </p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{description}</p>
                         </div>
                     </div>
 
                     <button
+                        type="button"
                         onClick={() => router.back()}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 6,
                             background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
-                            color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700,
+                            color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600,
                             cursor: 'pointer', padding: '8px 16px', borderRadius: 10,
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.color = 'var(--text-primary)';
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.color = 'var(--text-muted)';
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                            transition: 'all 0.15s',
                         }}
                     >
-                        <ChevronLeft size={14} /> Close
+                        <ChevronLeft size={14} /> Back
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
-                    gap: 16,
-                    alignItems: 'start'
-                }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                    {/* ── LEFT COLUMN: Core Identity & Rules ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                        {/* Identity Section */}
-                        <div style={{
-                            padding: '18px 22px', borderRadius: 18,
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-card)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FolderOpen size={14} color="#a855f7" />
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Core Identity</span>
+                    {/* Identity */}
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FolderOpen size={13} color="#a855f7" />
                             </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>PROJECT NAME *</Label>
-                                    <Input
-                                        placeholder="e.g. Finance Analytics Engine"
-                                        required
-                                        style={{
-                                            height: 40, borderRadius: 10,
-                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                            color: 'var(--text-primary)', fontSize: '0.9rem', padding: '0 14px'
-                                        }}
-                                        value={form.name}
-                                        onChange={e => setForm({ ...form, name: e.target.value })}
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>MISSION DESCRIPTION</Label>
-                                    <Textarea
-                                        placeholder="Describe the purpose, business context, and core objectives..."
-                                        style={{
-                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                            color: 'var(--text-primary)', borderRadius: 10,
-                                            resize: 'none', height: 70, fontSize: '0.82rem',
-                                            padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
-                                            width: '100%', lineHeight: 1.6
-                                        }}
-                                        value={form.description}
-                                        onChange={e => setForm({ ...form, description: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project Info</span>
                         </div>
 
-                        {/* Rules Section */}
-                        <div style={{
-                            padding: '18px 22px', borderRadius: 18,
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-card)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Sparkles size={14} color="#6366f1" />
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Intelligence & Rules</span>
-                            </div>
-
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div>
-                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>CODING GUIDELINES & ARCHITECTURAL PREFERENCES</Label>
-                                <Textarea
-                                    placeholder="Define specific patterns, preferences, or rules for your AI agents..."
-                                    style={{
-                                        background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                        color: 'var(--text-primary)', borderRadius: 10,
-                                        resize: 'none', height: 110, fontSize: '0.82rem',
-                                        padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
-                                        width: '100%', lineHeight: 1.6
-                                    }}
-                                    value={form.coding_guidelines}
-                                    onChange={e => setForm({ ...form, coding_guidelines: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ── RIGHT COLUMN: Integration & Infrastructure ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                        {/* Repos Section */}
-                        <div style={{
-                            padding: '18px 22px', borderRadius: 18,
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-card)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Github size={14} color="var(--text-primary)" />
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Source Control</span>
-                            </div>
-
-                            <div>
-                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>GITHUB REPOSITORIES</Label>
+                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>NAME *</Label>
                                 <Input
-                                    placeholder="owner/repo1, owner/repo2"
+                                    required
+                                    autoFocus
+                                    placeholder="e.g. My API Service"
                                     style={{
                                         height: 40, borderRadius: 10,
                                         background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                        color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.85rem', padding: '0 14px'
+                                        color: 'var(--text-primary)', fontSize: '0.9rem', padding: '0 14px'
                                     }}
-                                    value={form.github_repos}
-                                    onChange={e => setForm({ ...form, github_repos: e.target.value })}
+                                    value={form.name}
+                                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                                 />
-                                <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 4, opacity: 0.8 }}>Comma-separated — e.g. AbhiGaddi/ai-orchestrator</p>
-                            </div>
-                        </div>
-
-                        {/* Sonar Section */}
-                        <div style={{
-                            padding: '18px 22px', borderRadius: 18,
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-card)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <ShieldCheck size={14} color="#f59e0b" />
-                                </div>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quality Gate: SonarQube</span>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>PROJECT KEY</Label>
-                                    <Input
-                                        placeholder="org_project-key"
-                                        style={{
-                                            height: 40, borderRadius: 10,
-                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                            fontSize: '0.85rem', padding: '0 14px'
-                                        }}
-                                        value={form.sonar_project_key}
-                                        onChange={e => setForm({ ...form, sonar_project_key: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>ACCESS TOKEN</Label>
-                                    <Input
-                                        type="password"
-                                        placeholder="squ_..."
-                                        style={{
-                                            height: 40, borderRadius: 10,
-                                            background: 'var(--bg-input)', border: '1px solid var(--border)',
-                                            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
-                                            fontSize: '0.85rem', padding: '0 14px'
-                                        }}
-                                        value={form.sonar_token}
-                                        onChange={e => setForm({ ...form, sonar_token: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Submit Actions Integrated into the card */}
-                                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        style={{
-                                            height: 44, padding: '0 40px', borderRadius: 12,
-                                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
-                                            border: 'none', color: '#fff', fontSize: '0.9rem',
-                                            fontWeight: 900, cursor: isLoading ? 'not-allowed' : 'pointer',
-                                            boxShadow: '0 10px 20px rgba(168,85,247,0.3)',
-                                            transition: 'all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                            opacity: isLoading ? 0.7 : 1,
-                                            display: 'flex', alignItems: 'center', gap: 8,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.04em',
-                                            width: '100%'
-                                        }}
-                                        onMouseEnter={e => {
-                                            if (!isLoading) {
-                                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(168,85,247,0.5)';
-                                            }
-                                        }}
-                                        onMouseLeave={e => {
-                                            if (!isLoading) {
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                                e.currentTarget.style.boxShadow = '0 10px 20px rgba(168,85,247,0.3)';
-                                            }
-                                        }}
-                                    >
-                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                                            {submitLabel}
-                                            {!isLoading && (isEditing ? <Edit2 size={16} /> : <Sparkles size={16} />)}
-                                        </div>
-                                    </button>
-                                </div>
+                            <div>
+                                <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>DESCRIPTION</Label>
+                                <Textarea
+                                    placeholder="What does this project do?"
+                                    style={{
+                                        background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                        color: 'var(--text-primary)', borderRadius: 10,
+                                        resize: 'none', height: 72, fontSize: '0.85rem',
+                                        padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
+                                        width: '100%', lineHeight: 1.6
+                                    }}
+                                    value={form.description}
+                                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                                />
                             </div>
                         </div>
                     </div>
+
+                    {/* Local Path */}
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FolderSearch size={13} color="#6366f1" />
+                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Local Codebase</span>
+                        </div>
+
+                        <Label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>PROJECT PATH *</Label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Input
+                                required
+                                placeholder="/Users/you/projects/my-app"
+                                style={{
+                                    flex: 1, height: 40, borderRadius: 10,
+                                    background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                    color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                    fontSize: '0.82rem', padding: '0 14px'
+                                }}
+                                value={form.local_path}
+                                onChange={e => setForm(f => ({ ...f, local_path: e.target.value }))}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleBrowse}
+                                style={{
+                                    height: 40, padding: '0 16px', borderRadius: 10, flexShrink: 0,
+                                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                                    color: '#6366f1', fontSize: '0.82rem', fontWeight: 700,
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                <FolderOpen size={14} /> Browse
+                            </button>
+                        </div>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                            The local folder Claude agents will work in when running tasks.
+                        </p>
+                    </div>
+
+                    {/* AI Rules */}
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Sparkles size={13} color="#10b981" />
+                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                AI Rules <span style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                            </span>
+                        </div>
+
+                        <Textarea
+                            placeholder={`e.g.\n- Use TypeScript strict mode\n- Prefer functional components\n- Follow existing file structure`}
+                            style={{
+                                background: 'var(--bg-input)', border: '1px solid var(--border)',
+                                color: 'var(--text-primary)', borderRadius: 10,
+                                resize: 'none', height: 110, fontSize: '0.82rem',
+                                padding: '10px 14px', fontFamily: 'inherit', outline: 'none',
+                                width: '100%', lineHeight: 1.6
+                            }}
+                            value={form.coding_guidelines}
+                            onChange={e => setForm(f => ({ ...f, coding_guidelines: e.target.value }))}
+                        />
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                            Instructions passed to the AI agent before every task in this project.
+                        </p>
+                    </div>
+
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        disabled={isLoading || !form.name.trim() || !form.local_path.trim()}
+                        style={{
+                            height: 48, borderRadius: 14,
+                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                            border: 'none', color: '#fff', fontSize: '0.95rem',
+                            fontWeight: 800, cursor: isLoading ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 8px 24px rgba(168,85,247,0.3)',
+                            transition: 'all 0.2s',
+                            opacity: (isLoading || !form.name.trim() || !form.local_path.trim()) ? 0.5 : 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            letterSpacing: '0.02em',
+                        }}
+                    >
+                        {isEditing ? <Edit2 size={16} /> : <Plus size={16} />}
+                        {submitLabel}
+                    </button>
                 </form>
             </div>
         </div>
